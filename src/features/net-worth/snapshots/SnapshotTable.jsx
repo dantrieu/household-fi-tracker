@@ -143,32 +143,33 @@ function SnapshotRow({ snap }) {
 
   return (
     <tr className="hover:bg-gray-50 transition-colors group">
-      {/* Date + remark — click to edit */}
-      <td className="py-3 pr-4">
-        <button
-          onClick={startEdit}
-          className="text-left"
-          title="Click to edit"
-        >
+      {/* Date + remark */}
+      <td className="py-3 pr-4 w-40 min-w-[8rem]">
+        <button onClick={startEdit} className="text-left w-full" title="Click to edit">
           <span className="font-semibold text-gray-800 text-sm hover:text-green-700 hover:underline decoration-dashed underline-offset-2 transition-colors">
             {snapDate(snap)}
           </span>
           {snap.remark && (
-            <span className="block text-xs text-gray-400 leading-tight mt-0.5">{snap.remark}</span>
+            <span
+              className="block text-xs text-gray-400 leading-tight mt-0.5 truncate max-w-[18rem]"
+              title={snap.remark}
+            >
+              {snap.remark}
+            </span>
           )}
         </button>
       </td>
 
-      <td className="py-3 pr-4 text-right tabular-nums font-medium text-gray-900 text-sm">
+      <td className="py-3 pr-4 w-32 text-right tabular-nums font-medium text-gray-900 text-sm">
         {formatSGD(snap.totals.total_net_worth)}
       </td>
-      <td className="py-3 pr-4 text-right tabular-nums text-gray-600 text-sm">
+      <td className="py-3 pr-4 w-32 text-right tabular-nums text-gray-600 text-sm">
         {formatSGD(snap.totals.investable_net_worth)}
       </td>
-      <td className="py-3 pr-4 text-right">
+      <td className="py-3 pr-4 w-40 text-right">
         <DeltaBadge delta={snap.delta} deltaPct={snap.deltaPct} />
       </td>
-      <td className="py-3 pr-2 text-right">
+      <td className="py-3 pr-2 w-6 text-right">
         <button
           onClick={() => deleteSnapshot(snap.id)}
           aria-label={`Delete ${snapDate(snap)} snapshot`}
@@ -213,10 +214,10 @@ export default function SnapshotTable() {
                 <span className="text-gray-300">{newestFirst ? '↓' : '↑'}</span>
               </button>
             </th>
-            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Total NW</th>
-            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Investable</th>
-            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior</th>
-            <th className="py-2" />
+            <th className="py-2 pr-4 w-32 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Total NW</th>
+            <th className="py-2 pr-4 w-32 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Investable</th>
+            <th className="py-2 pr-4 w-40 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior</th>
+            <th className="py-2 w-6" />
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
