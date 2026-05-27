@@ -71,18 +71,23 @@ export default function AssetRow({ categoryKey }) {
   ) : (
     <div className="flex items-center gap-1 min-w-0">
       <span className="text-sm font-medium text-gray-800 truncate">{category.label}</span>
-      {isPortfolioFed && (
-        <span className="text-xs text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 shrink-0">auto</span>
+      {isPortfolioFed ? (
+        <span
+          className="text-xs text-blue-400 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 shrink-0 cursor-default"
+          title="Value and name are auto-synced from your Portfolio tab — edit positions there to update this."
+        >
+          auto-sync
+        </span>
+      ) : (
+        <button
+          onClick={startLabelEdit}
+          aria-label={`Rename ${category.label}`}
+          className="text-[11px] opacity-25 hover:opacity-70 shrink-0 leading-none transition-opacity"
+          title="Rename"
+        >
+          ✏️
+        </button>
       )}
-      {/* Pencil emoji — small and muted, slanted so it reads as pencil */}
-      <button
-        onClick={startLabelEdit}
-        aria-label={`Rename ${category.label}`}
-        className="text-[11px] opacity-25 hover:opacity-70 shrink-0 leading-none transition-opacity"
-        title="Rename"
-      >
-        ✏️
-      </button>
     </div>
   );
 
