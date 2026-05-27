@@ -2,6 +2,7 @@ import useStore from '../../store/useStore';
 import FIMetricsCards from './FIMetricsCards';
 import FIInputsPanel from './FIInputsPanel';
 import FIScenarioPanel from './FIScenarioPanel';
+import CPFLifePanel from './CPFLifePanel';
 import FIProjectionChart from './FIProjectionChart';
 
 export default function FIForecastPage() {
@@ -20,13 +21,16 @@ export default function FIForecastPage() {
       {/* Key metrics — investable portfolio → passive income → gap → FI year */}
       <FIMetricsCards />
 
-      {/* Inputs + Scenario side by side on large screens */}
+      {/* Projection inputs + FI scenario */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <FIInputsPanel />
         <FIScenarioPanel />
       </div>
 
-      {/* Portfolio growth projection chart */}
+      {/* CPF LIFE — separate section since it's a different income source (not portfolio-based) */}
+      <CPFLifePanel />
+
+      {/* Monthly passive income projection chart */}
       <FIProjectionChart />
     </div>
   );

@@ -418,14 +418,15 @@ export const selectors = {
    */
   fiMetrics(state) {
     return computeFIMetrics({
-      investablePortfolio:  selectors.investableNetWorth(state),
-      targetMonthlyIncome:  state.fi_settings.target_monthly_income_sgd,
-      currentAge:           state.fi_settings.current_age,
-      retirementAge:        state.fi_settings.target_retirement_age,
-      annualSavings:        state.fi_settings.annual_savings_sgd,
-      annualReturnPct:      state.fi_settings.assumed_annual_return_pct ?? 6,
-      cpfPersons:           state.fi_settings.cpf_persons ?? 1,
-      swrPct:               state.fi_settings.swr_pct ?? 4,
+      investablePortfolio:            selectors.investableNetWorth(state),
+      targetMonthlyIncome:            state.fi_settings.target_monthly_income_sgd,
+      currentAge:                     state.fi_settings.current_age,
+      retirementAge:                  state.fi_settings.target_retirement_age,
+      annualSavings:                  state.fi_settings.annual_savings_sgd,
+      annualReturnPct:                state.fi_settings.assumed_annual_return_pct ?? 6,
+      cpfPersons:                     state.fi_settings.cpf_persons ?? 1,
+      swrPct:                         state.fi_settings.swr_pct ?? 4,
+      stopContributionsAtRetirement:  state.fi_settings.stop_contributions_at_retirement ?? true,
     });
   },
 
