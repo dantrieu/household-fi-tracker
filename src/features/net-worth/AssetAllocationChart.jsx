@@ -9,14 +9,45 @@ const COLORS = [
   '#ef4444', '#06b6d4', '#f97316', '#ec4899',
 ];
 
+// Fixed two-slice colours for grouped view
+const GROUP_COLORS = {
+  'Investable':  '#22c55e',
+  'Non-invest.': '#94a3b8',
+};
+
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const { name, value } = payload[0].payload;
+  const pct = payload[0].percent;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-sm">
       <p className="font-semibold text-gray-800">{name}</p>
       <p className="text-gray-600 tabular-nums">{formatSGD(value)}</p>
+      {pct != null && (
+        <p className="text-gray-400 text-xs">{(pct * 100).toFixed(1)}%</p>
+      )}
     </div>
+  );
+}
+
+// Percentage label rendered inside each slice
+const RADIAN = Math.PI / 180;
+function PctLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
+  if (percent < 0.05) return null; // skip slivers
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text
+      x={x} y={y}
+      fill="white"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={11}
+      fontWeight={600}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
   );
 }
 
@@ -29,17 +60,34 @@ const VIEWS = [
 export default function AssetAllocationChart() {
   const state   = useStore();
   const ordered = selectors.orderedCategories(state);
-  const [view, setView] = useState('all');
+  const [view, setView]       = useState('all');
+  const [grouped, setGrouped] = useState(false);
 
-  const filtered = ordered.filter((cat) => {
-    if (cat.value <= 0) return false;
-    if (view === 'investable') return cat.investable;
-    if (view === 'non')        return !cat.investable;
-    return true;
-  });
+  // Build chart data
+  let data;
+  if (view === 'all' && grouped) {
+    // Collapse all categories into two aggregate slices
+    const inv    = ordered.filter((c) => c.value > 0 &&  c.investable).reduce((s, c) => s + c.value, 0);
+    const nonInv = ordered.filter((c) => c.value > 0 && !c.investable).reduce((s, c) => s + c.value, 0);
+    data = [
+      ...(inv    > 0 ? [{ name: 'Investable',   value: inv,    color: GROUP_COLORS['Investable']  }] : []),
+      ...(nonInv > 0 ? [{ name: 'Non-invest.',   value: nonInv, color: GROUP_COLORS['Non-invest.'] }] : []),
+    ];
+  } else {
+    const filtered = ordered.filter((cat) => {
+      if (cat.value <= 0) return false;
+      if (view === 'investable') return  cat.investable;
+      if (view === 'non')        return !cat.investable;
+      return true;
+    });
+    data = filtered.map((cat, i) => ({
+      name:  cat.label,
+      value: cat.value,
+      color: COLORS[i % COLORS.length],
+    }));
+  }
 
-  const data = filtered.map((cat) => ({ name: cat.label, value: cat.value }));
-
+  // Tab button styles
   const tabCls = (id) => [
     'px-2.5 py-1 rounded text-xs font-medium transition-colors',
     view === id
@@ -47,11 +95,36 @@ export default function AssetAllocationChart() {
       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100',
   ].join(' ');
 
+  const groupBtnCls = [
+    'px-2.5 py-1 rounded text-xs font-medium transition-colors border',
+    grouped
+      ? 'bg-gray-700 text-white border-gray-700'
+      : 'text-gray-400 hover:text-gray-600 border-gray-200 hover:border-gray-300 bg-white',
+  ].join(' ');
+
   const toggleBar = (
-    <div className="flex gap-1">
-      {VIEWS.map(({ id, label }) => (
-        <button key={id} className={tabCls(id)} onClick={() => setView(id)}>{label}</button>
-      ))}
+    <div className="flex items-center gap-2">
+      <div className="flex gap-1">
+        {VIEWS.map(({ id, label }) => (
+          <button
+            key={id}
+            className={tabCls(id)}
+            onClick={() => setView(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {/* Group toggle — only visible in "All" view */}
+      {view === 'all' && (
+        <button
+          className={groupBtnCls}
+          onClick={() => setGrouped((g) => !g)}
+          title="Collapse into Investable / Non-invest."
+        >
+          Group
+        </button>
+      )}
     </div>
   );
 
@@ -69,12 +142,27 @@ export default function AssetAllocationChart() {
     <Card title="Allocation" action={toggleBar}>
       <ResponsiveContainer width="100%" height={260}>
         <PieChart>
-          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2} dataKey="value">
-            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          <Pie
+            data={data}
+            cx="50%" cy="50%"
+            innerRadius={55} outerRadius={90}
+            paddingAngle={2}
+            dataKey="value"
+            labelLine={false}
+            label={PctLabel}
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
-          <Legend iconType="circle" iconSize={8}
-            formatter={(value) => <span className="text-xs text-gray-600">{value}</span>} />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            formatter={(value) => (
+              <span className="text-xs text-gray-600">{value}</span>
+            )}
+          />
         </PieChart>
       </ResponsiveContainer>
     </Card>
