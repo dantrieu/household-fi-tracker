@@ -4,6 +4,46 @@
 
 const STALE_MS = 15 * 60 * 1000; // 15 minutes
 
+// ─── CoinGecko crypto ─────────────────────────────────────────────────────────
+
+/** Map common ticker symbols → CoinGecko coin IDs */
+const COINGECKO_ID_MAP = {
+  BTC: 'bitcoin', ETH: 'ethereum', BNB: 'binancecoin', SOL: 'solana',
+  ADA: 'cardano', XRP: 'ripple',   DOGE: 'dogecoin',  DOT: 'polkadot',
+  LINK: 'chainlink', MATIC: 'matic-network', AVAX: 'avalanche-2',
+  UNI: 'uniswap', LTC: 'litecoin', ATOM: 'cosmos',    NEAR: 'near',
+  ALGO: 'algorand', VET: 'vechain', FTM: 'fantom',    ARB: 'arbitrum',
+  OP: 'optimism',  INJ: 'injective-protocol', SUI: 'sui',
+  USDT: 'tether',  USDC: 'usd-coin', DAI: 'dai',
+};
+
+export function resolveCoinGeckoId(ticker) {
+  return COINGECKO_ID_MAP[ticker.toUpperCase()] ?? ticker.toLowerCase();
+}
+
+/**
+ * Fetch the latest USD price for a crypto token via CoinGecko.
+ * Returns { price, currency, company_name, coin_id }
+ */
+export async function fetchCryptoPrice(ticker) {
+  const coinId = resolveCoinGeckoId(ticker);
+  const url = `/api/coingecko/api/v3/coins/${encodeURIComponent(coinId)}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`CoinGecko: HTTP ${res.status} for "${coinId}". Check the ticker symbol.`);
+
+  const json = await res.json();
+  const price = json?.market_data?.current_price?.usd;
+  if (price == null) throw new Error(`No price found for "${coinId}" on CoinGecko.`);
+
+  return {
+    price,
+    currency: 'USD',
+    company_name: json?.name ?? ticker,
+    coin_id: coinId,
+  };
+}
+
 // ─── Yahoo Finance ─────────────────────────────────────────────────────────────
 
 /**
@@ -17,9 +57,12 @@ export function resolveYahooTicker(ticker, exchange) {
 
 /**
  * Fetch the latest price for a single ticker.
- * Returns { price: number, currency: string } or throws on error.
+ * Routes CRYPTO to CoinGecko, SGX/US to Yahoo Finance.
+ * Returns { price, currency, company_name, coin_id? }
  */
 export async function fetchStockPrice(ticker, exchange) {
+  if (exchange === 'CRYPTO') return fetchCryptoPrice(ticker);
+
   const symbol = resolveYahooTicker(ticker, exchange);
   const url = `/api/yahoo/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&.tsrc=finance`;
 

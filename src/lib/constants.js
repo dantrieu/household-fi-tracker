@@ -34,6 +34,12 @@ export const CATEGORY_META = {
     investable: false,  // non-investable by default per PRD
     source: 'manual',
   },
+  crypto: {
+    key: 'crypto',
+    label: 'Crypto',
+    investable: true,
+    source: 'portfolio',  // auto-fed from crypto positions
+  },
   other: {
     key: 'other',
     label: 'Other',
@@ -47,6 +53,7 @@ export const DEFAULT_CATEGORY_ORDER = [
   'cash_savings',
   'sgx_equities',
   'us_equities',
+  'crypto',
   'cpf',
   'property',
   'other',

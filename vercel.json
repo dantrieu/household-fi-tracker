@@ -1,7 +1,8 @@
 {
   "rewrites": [
-    { "source": "/api/yahoo/(.*)", "destination": "/api/yahoo" },
-    { "source": "/api/fx/(.*)",    "destination": "/api/fx"    },
-    { "source": "/(.*)",           "destination": "/index.html" }
+    { "source": "/api/yahoo/(.*)",     "destination": "/api/yahoo"     },
+    { "source": "/api/fx/(.*)",        "destination": "/api/fx"        },
+    { "source": "/api/coingecko/(.*)", "destination": "/api/coingecko" },
+    { "source": "/(.*)",               "destination": "/index.html"    }
   ]
 }

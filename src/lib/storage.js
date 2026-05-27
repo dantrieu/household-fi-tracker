@@ -62,8 +62,9 @@ export function buildV1State() {
   // Seed data — realistic Singapore household demo values
   const categories = buildDefaultCategories();
   categories.cash_savings.value  = 85000;
-  categories.sgx_equities.value  = 42000;
-  categories.us_equities.value   = 38000;
+  categories.sgx_equities.value  = 0;      // auto-fed from Portfolio
+  categories.us_equities.value   = 0;      // auto-fed from Portfolio
+  categories.crypto.value        = 0;      // auto-fed from Portfolio
   categories.cpf.value           = 180000;
   categories.property.value      = 450000;
   categories.other.value         = 12000;
@@ -87,7 +88,7 @@ export function buildV1State() {
           net_worth_ex_cpf:  370000,
         },
         categories: {
-          cash_savings: 68000, sgx_equities: 28000, us_equities: 22000,
+          cash_savings: 68000, sgx_equities: 0, us_equities: 0, crypto: 0,
           cpf: 160000, property: 400000, other: 8000,
         },
       },
@@ -97,12 +98,12 @@ export function buildV1State() {
         label: 'Year-end 2023',
         saved_at: '2023-12-31T23:59:00.000Z',
         totals: {
-          total_net_worth:    668000,
-          investable_net_worth: 145000,
-          net_worth_ex_cpf:  498000,
+          total_net_worth:    648000,
+          investable_net_worth: 74000,
+          net_worth_ex_cpf:  478000,
         },
         categories: {
-          cash_savings: 74000, sgx_equities: 35000, us_equities: 29000,
+          cash_savings: 74000, sgx_equities: 0, us_equities: 0, crypto: 0,
           cpf: 170000, property: 420000, other: 10000,
         },
       },
@@ -112,13 +113,13 @@ export function buildV1State() {
         label: 'Year-end 2024',
         saved_at: '2024-12-31T23:59:00.000Z',
         totals: {
-          total_net_worth:    752000,
-          investable_net_worth: 160000,
-          net_worth_ex_cpf:  582000,
+          total_net_worth:    708000,
+          investable_net_worth: 96000,
+          net_worth_ex_cpf:  533000,
         },
         categories: {
-          cash_savings: 80000, sgx_equities: 38000, us_equities: 34000,
-          cpf: 175000, property: 435000, other: 11000,
+          cash_savings: 85000, sgx_equities: 0, us_equities: 0, crypto: 0,
+          cpf: 175000, property: 435000, other: 13000,
         },
       },
     ],

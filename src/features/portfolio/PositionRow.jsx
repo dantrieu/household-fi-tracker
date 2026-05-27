@@ -58,11 +58,11 @@ export default function PositionRow({ position, totalSGD }) {
       <td className="py-3 px-2">
         <span className={[
           'text-xs font-semibold px-1.5 py-0.5 rounded',
-          exchange === 'SGX'
-            ? 'bg-blue-50 text-blue-600'
-            : 'bg-purple-50 text-purple-600',
+          exchange === 'SGX'    ? 'bg-blue-50 text-blue-600'
+          : exchange === 'CRYPTO' ? 'bg-orange-50 text-orange-600'
+          : 'bg-purple-50 text-purple-600',
         ].join(' ')}>
-          {exchange}
+          {exchange === 'CRYPTO' ? 'Crypto' : exchange}
         </span>
       </td>
 
@@ -86,7 +86,9 @@ export default function PositionRow({ position, totalSGD }) {
             onClick={() => { setSharesDraft(String(shares)); setEditShares(true); }}
             className="cursor-pointer hover:text-green-700 hover:underline decoration-dashed underline-offset-2"
           >
-            {shares.toLocaleString()}
+            {exchange === 'CRYPTO'
+              ? shares.toLocaleString(undefined, { maximumFractionDigits: 8 })
+              : shares.toLocaleString()}
           </span>
         )}
       </td>

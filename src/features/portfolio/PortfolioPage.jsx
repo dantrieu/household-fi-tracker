@@ -46,11 +46,11 @@ export default function PortfolioPage() {
   async function handleAdd({ ticker, exchange, shares, cost_price }) {
     setAddLoading(true);
     try {
-      // Validate ticker by fetching price first (also returns company name)
-      const { price, currency, company_name } = await fetchStockPrice(ticker, exchange);
+      // Validate ticker by fetching price first (also returns company name + coin_id for crypto)
+      const { price, currency, company_name, coin_id } = await fetchStockPrice(ticker, exchange);
 
-      // Add to store (with company name)
-      const id = addPosition({ ticker, exchange, shares, cost_price, company_name });
+      // Add to store (with company name and coin_id for crypto)
+      const id = addPosition({ ticker, exchange, shares, cost_price, company_name, coin_id });
 
       // Also fetch FX rate and apply prices for the new position
       let fxRate = useStore.getState().portfolio.fx_rate_usd_sgd;

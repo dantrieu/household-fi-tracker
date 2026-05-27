@@ -106,7 +106,7 @@ const useStore = create(
        * @param {string} key
        */
       removeCategory(key) {
-        const PROTECTED = ['cash_savings', 'sgx_equities', 'us_equities', 'cpf', 'property', 'other'];
+        const PROTECTED = ['cash_savings', 'sgx_equities', 'us_equities', 'crypto', 'cpf', 'property', 'other'];
         if (PROTECTED.includes(key)) return;
         set((state) => {
           const { [key]: _removed, ...rest } = state.net_worth.categories;
@@ -161,12 +161,13 @@ const useStore = create(
       // ── Portfolio position actions (Phase 2) ────────────────────────────
 
       /** Add a new position. */
-      addPosition({ ticker, exchange, shares, cost_price = null, company_name = null }) {
+      addPosition({ ticker, exchange, shares, cost_price = null, company_name = null, coin_id = null }) {
         const position = {
           id: String(Date.now()),
           ticker: ticker.trim().toUpperCase(),
           exchange,
           company_name: company_name ?? null,
+          coin_id: coin_id ?? null,           // CoinGecko ID for crypto positions
           shares: Number(shares),
           cost_price: cost_price != null ? Number(cost_price) : null,
           last_price: null,
@@ -230,15 +231,18 @@ const useStore = create(
             };
           });
 
-          // Recalculate totals
-          let sgx_sgd = 0, us_sgd = 0;
+          // Recalculate totals by exchange
+          let sgx_sgd = 0, us_sgd = 0, crypto_sgd = 0;
           for (const p of positions) {
             if (p.last_price == null) continue;
-            const valueSGD = p.exchange === 'SGX'
-              ? p.shares * p.last_price
-              : p.shares * p.last_price * fxRate;
-            if (p.exchange === 'SGX') sgx_sgd += valueSGD;
-            else us_sgd += valueSGD;
+            if (p.exchange === 'SGX') {
+              sgx_sgd += p.shares * p.last_price;
+            } else if (p.exchange === 'CRYPTO') {
+              crypto_sgd += p.shares * p.last_price * fxRate;
+            } else {
+              // US equities — price is in USD
+              us_sgd += p.shares * p.last_price * fxRate;
+            }
           }
 
           return {
@@ -248,15 +252,18 @@ const useStore = create(
               positions,
               last_refreshed: now,
               fx_rate_usd_sgd: fxRate,
-              totals: { sgx_sgd, us_sgd },
+              totals: { sgx_sgd, us_sgd, crypto_sgd },
             },
-            // Auto-feed Net Worth equities categories
+            // Auto-feed Net Worth categories
             net_worth: {
               ...state.net_worth,
               categories: {
                 ...state.net_worth.categories,
                 sgx_equities: { ...state.net_worth.categories.sgx_equities, value: sgx_sgd },
                 us_equities:  { ...state.net_worth.categories.us_equities,  value: us_sgd  },
+                ...(state.net_worth.categories.crypto
+                  ? { crypto: { ...state.net_worth.categories.crypto, value: crypto_sgd } }
+                  : {}),
               },
             },
           };

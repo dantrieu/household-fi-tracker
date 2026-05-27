@@ -62,34 +62,42 @@ export default function AddPositionForm({ onAdd, loading }) {
           >
             <option value="SGX">SGX</option>
             <option value="US">US</option>
+            <option value="CRYPTO">Crypto</option>
           </select>
         </div>
 
-        {/* Ticker */}
+        {/* Ticker / Symbol */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">
-            Ticker {exchange === 'SGX' && <span className="text-gray-400">(no .SI needed)</span>}
+            {exchange === 'CRYPTO' ? 'Symbol' : 'Ticker'}
+            {exchange === 'SGX' && <span className="text-gray-400"> (no .SI needed)</span>}
           </label>
           <input
             autoFocus
             value={ticker}
             onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            placeholder={exchange === 'SGX' ? 'e.g. D05' : 'e.g. AAPL'}
+            placeholder={
+              exchange === 'SGX' ? 'e.g. D05'
+              : exchange === 'CRYPTO' ? 'e.g. BTC'
+              : 'e.g. AAPL'
+            }
             className="w-28 border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                        focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
 
-        {/* Shares */}
+        {/* Shares / Amount */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500">Shares</label>
+          <label className="text-xs font-medium text-gray-500">
+            {exchange === 'CRYPTO' ? 'Amount' : 'Shares'}
+          </label>
           <input
             type="number"
             min="0"
             step="any"
             value={shares}
             onChange={(e) => setShares(e.target.value)}
-            placeholder="100"
+            placeholder={exchange === 'CRYPTO' ? '0.5' : '100'}
             className="w-28 border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                        focus:outline-none focus:ring-2 focus:ring-green-500"
           />
@@ -98,7 +106,8 @@ export default function AddPositionForm({ onAdd, loading }) {
         {/* Cost price (optional) */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">
-            Cost price / share <span className="text-gray-400">(optional)</span>
+            Cost price / {exchange === 'CRYPTO' ? 'token' : 'share'}{' '}
+            <span className="text-gray-400">(optional)</span>
           </label>
           <input
             type="number"
@@ -136,7 +145,9 @@ export default function AddPositionForm({ onAdd, loading }) {
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
 
       <p className="mt-2 text-xs text-gray-400">
-        Price is fetched from Yahoo Finance on add. 15-min delay on live data.
+        {exchange === 'CRYPTO'
+          ? 'Price fetched from CoinGecko. All values converted to SGD.'
+          : 'Price fetched from Yahoo Finance on add. 15-min delay on live data.'}
       </p>
     </form>
   );
