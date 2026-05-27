@@ -3,24 +3,16 @@ import { NumericFormat } from 'react-number-format';
 import { formatSGD } from '../../lib/format';
 
 /**
- * Displays a formatted SGD value. Click → inline input with thousand separators →
- * save on Enter/blur, cancel on Escape.
- *
- * Props:
- *   value       – number (raw SGD)
- *   onSave      – (newValue: number) => void
- *   readOnly    – boolean — shows value but disables editing (for portfolio-sourced categories)
- *   className   – extra classes on the wrapper span
+ * Displays a formatted SGD value with a subtle dashed underline to signal editability.
+ * Click / tap → inline input with thousand separators → save on Enter/blur, cancel on Escape.
  */
 export default function EditableNumber({ value, onSave, readOnly = false, className = '' }) {
-  const [editing, setEditing]     = useState(false);
-  const [floatVal, setFloatVal]   = useState(value);
-  const inputRef                  = useRef(null);
+  const [editing, setEditing]   = useState(false);
+  const [floatVal, setFloatVal] = useState(value);
+  const inputRef                = useRef(null);
 
   useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.select();
-    }
+    if (editing && inputRef.current) inputRef.current.select();
   }, [editing]);
 
   function startEdit() {
@@ -64,17 +56,15 @@ export default function EditableNumber({ value, onSave, readOnly = false, classN
       onClick={startEdit}
       title={readOnly ? 'Auto-updated from Portfolio' : 'Tap to edit'}
       className={[
-        'tabular-nums font-medium text-gray-900 text-sm inline-flex items-center gap-1',
+        'tabular-nums font-medium text-sm',
         readOnly
           ? 'cursor-default text-gray-500'
-          : 'cursor-pointer hover:text-green-700',
+          // Dashed underline signals editability without adding an icon that misaligns numbers
+          : 'cursor-pointer text-gray-900 underline decoration-dashed decoration-gray-300 underline-offset-2',
         className,
       ].join(' ')}
     >
       {formatSGD(value)}
-      {!readOnly && (
-        <span className="text-[10px] text-gray-300 hover:text-gray-500">✏</span>
-      )}
     </span>
   );
 }

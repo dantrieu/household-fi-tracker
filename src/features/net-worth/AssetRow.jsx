@@ -74,14 +74,14 @@ export default function AssetRow({ categoryKey }) {
       {isPortfolioFed && (
         <span className="text-xs text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 shrink-0">auto</span>
       )}
-      {/* Always-visible subtle pencil — not just on hover */}
+      {/* Very subtle pencil — visible but not distracting */}
       <button
         onClick={startLabelEdit}
         aria-label={`Rename ${category.label}`}
-        className="text-gray-300 hover:text-gray-600 text-[11px] shrink-0 leading-none"
+        className="text-gray-200 hover:text-gray-500 text-[9px] shrink-0 leading-none transition-colors"
         title="Rename"
       >
-        ✏
+        ✏︎
       </button>
     </div>
   );

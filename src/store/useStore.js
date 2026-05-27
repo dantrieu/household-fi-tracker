@@ -314,15 +314,51 @@ const useStore = create(
         }));
       },
 
-      /** Update snapshot label and/or year. */
-      updateSnapshot(id, { label, year }) {
+      /**
+       * Save a manually-entered snapshot with custom totals (for past years).
+       * @param {number} year
+       * @param {string} label
+       * @param {{ total: number, investable: number, exCpf: number }} totals
+       */
+      saveManualSnapshot(year, label, totals) {
+        const snapshot = {
+          id: String(Date.now()),
+          year: Number(year),
+          label: label || `Year-end ${year}`,
+          saved_at: new Date().toISOString(),
+          manual: true,
+          totals: {
+            total_net_worth:      totals.total     ?? 0,
+            investable_net_worth: totals.investable ?? 0,
+            net_worth_ex_cpf:     totals.exCpf      ?? 0,
+          },
+          categories: {},
+        };
+        set((state) => ({
+          last_modified: new Date().toISOString(),
+          snapshots: [
+            ...state.snapshots.filter((s) => s.year !== Number(year)),
+            snapshot,
+          ],
+        }));
+      },
+
+      /** Update snapshot label, year, and/or totals. */
+      updateSnapshot(id, { label, year, totals }) {
         set((state) => ({
           last_modified: new Date().toISOString(),
           snapshots: state.snapshots.map((s) =>
             s.id !== id ? s : {
               ...s,
-              ...(label != null ? { label } : {}),
-              ...(year != null ? { year: Number(year) } : {}),
+              ...(label  != null ? { label } : {}),
+              ...(year   != null ? { year: Number(year) } : {}),
+              ...(totals != null ? {
+                totals: {
+                  total_net_worth:      totals.total      ?? s.totals.total_net_worth,
+                  investable_net_worth: totals.investable  ?? s.totals.investable_net_worth,
+                  net_worth_ex_cpf:     totals.exCpf       ?? s.totals.net_worth_ex_cpf,
+                },
+              } : {}),
             }
           ),
         }));

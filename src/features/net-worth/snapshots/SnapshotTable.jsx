@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NumericFormat } from 'react-number-format';
 import {
   DndContext,
   closestCenter,
@@ -19,6 +20,23 @@ import useStore, { selectors } from '../../../store/useStore';
 import { formatSGD } from '../../../lib/format';
 import DeltaBadge from '../../../components/ui/DeltaBadge';
 
+function SgdDraftInput({ value, onChange, placeholder }) {
+  return (
+    <div className="relative">
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">S$</span>
+      <NumericFormat
+        value={value ?? ''}
+        onValueChange={(v) => onChange(v.floatValue ?? null)}
+        thousandSeparator=","
+        allowNegative={false}
+        placeholder={placeholder}
+        className="w-28 border border-green-400 rounded pl-5 pr-1 py-1 text-xs text-right
+                   focus:outline-none focus:ring-1 focus:ring-green-500"
+      />
+    </div>
+  );
+}
+
 function SnapshotRow({ snap }) {
   const deleteSnapshot = useStore((s) => s.deleteSnapshot);
   const updateSnapshot = useStore((s) => s.updateSnapshot);
@@ -26,15 +44,13 @@ function SnapshotRow({ snap }) {
   const [editing, setEditing]       = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
   const [yearDraft, setYearDraft]   = useState('');
+  const [totalDraft, setTotalDraft] = useState(null);
+  const [investDraft, setInvestDraft] = useState(null);
+  const [exCpfDraft, setExCpfDraft]   = useState(null);
 
   const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
+    attributes, listeners, setNodeRef, setActivatorNodeRef,
+    transform, transition, isDragging,
   } = useSortable({ id: snap.id });
 
   const style = {
@@ -47,63 +63,76 @@ function SnapshotRow({ snap }) {
   function startEdit() {
     setLabelDraft(snap.label);
     setYearDraft(String(snap.year));
+    setTotalDraft(snap.totals.total_net_worth);
+    setInvestDraft(snap.totals.investable_net_worth);
+    setExCpfDraft(snap.totals.net_worth_ex_cpf);
     setEditing(true);
   }
 
   function commitEdit() {
     const year = parseInt(yearDraft, 10);
     updateSnapshot(snap.id, {
-      label: labelDraft.trim() || snap.label,
-      year: !isNaN(year) ? year : snap.year,
+      label:  labelDraft.trim() || snap.label,
+      year:   !isNaN(year) ? year : snap.year,
+      totals: {
+        total:      totalDraft  ?? snap.totals.total_net_worth,
+        investable: investDraft ?? snap.totals.investable_net_worth,
+        exCpf:      exCpfDraft  ?? snap.totals.net_worth_ex_cpf,
+      },
     });
     setEditing(false);
   }
 
   function handleKey(e) {
-    if (e.key === 'Enter') commitEdit();
+    if (e.key === 'Enter')  commitEdit();
     if (e.key === 'Escape') setEditing(false);
   }
 
   if (editing) {
     return (
       <tr ref={setNodeRef} style={style} className="bg-green-50">
-        <td colSpan={5} className="py-2 px-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              type="number"
-              value={yearDraft}
-              onChange={(e) => setYearDraft(e.target.value)}
-              onKeyDown={handleKey}
-              className="w-20 border border-green-400 rounded px-2 py-1 text-sm
-                         focus:outline-none focus:ring-1 focus:ring-green-500"
-              placeholder="Year"
-            />
-            <input
-              autoFocus
-              value={labelDraft}
-              onChange={(e) => setLabelDraft(e.target.value)}
-              onKeyDown={handleKey}
-              className="flex-1 min-w-32 border border-green-400 rounded px-2 py-1 text-sm
-                         focus:outline-none focus:ring-1 focus:ring-green-500"
-              placeholder="Label"
-            />
-            <button
-              onClick={commitEdit}
-              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs
-                         font-medium rounded transition-colors"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="px-3 py-1 border border-gray-200 text-gray-500 text-xs
-                         rounded hover:border-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
+        <td colSpan={6} className="py-2.5 px-3">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-400 uppercase">Year</span>
+              <input type="number" value={yearDraft}
+                onChange={(e) => setYearDraft(e.target.value)} onKeyDown={handleKey}
+                className="w-16 border border-green-400 rounded px-2 py-1 text-sm
+                           focus:outline-none focus:ring-1 focus:ring-green-500" />
+            </div>
+            <div className="flex flex-col gap-0.5 flex-1 min-w-28">
+              <span className="text-[10px] text-gray-400 uppercase">Label</span>
+              <input autoFocus value={labelDraft}
+                onChange={(e) => setLabelDraft(e.target.value)} onKeyDown={handleKey}
+                className="w-full border border-green-400 rounded px-2 py-1 text-sm
+                           focus:outline-none focus:ring-1 focus:ring-green-500" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-400 uppercase">Total NW</span>
+              <SgdDraftInput value={totalDraft} onChange={setTotalDraft} placeholder="Total" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-400 uppercase">Investable</span>
+              <SgdDraftInput value={investDraft} onChange={setInvestDraft} placeholder="Investable" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-400 uppercase">Excl. CPF</span>
+              <SgdDraftInput value={exCpfDraft} onChange={setExCpfDraft} placeholder="Excl. CPF" />
+            </div>
+            <div className="flex gap-1.5 pb-0.5">
+              <button onClick={commitEdit}
+                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs
+                           font-medium rounded transition-colors">
+                Save
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="px-3 py-1.5 border border-gray-200 text-gray-500 text-xs
+                           rounded hover:border-gray-300 transition-colors">
+                Cancel
+              </button>
+            </div>
           </div>
         </td>
-        <td />
       </tr>
     );
   }
