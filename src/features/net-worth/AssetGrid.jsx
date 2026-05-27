@@ -1,17 +1,9 @@
 import { useState } from 'react';
 import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
+  DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  arrayMove,
+  SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
 import useStore, { selectors } from '../../store/useStore';
 import AssetRow from './AssetRow';
@@ -19,16 +11,18 @@ import Card from '../../components/ui/Card';
 import { formatSGD } from '../../lib/format';
 
 export default function AssetGrid() {
-  const state              = useStore();
-  const ordered            = selectors.orderedCategories(state);
-  const reorderCategories  = useStore((s) => s.reorderCategories);
-  const addCategory        = useStore((s) => s.addCategory);
-  const totalNetWorth      = selectors.totalNetWorth(state);
+  const state             = useStore();
+  const ordered           = selectors.orderedCategories(state);
+  const reorderCategories = useStore((s) => s.reorderCategories);
+  const addCategory       = useStore((s) => s.addCategory);
+
+  const totalNetWorth  = selectors.totalNetWorth(state);
+  const totalInvest    = selectors.investableNetWorth(state);
+  const totalExCpf     = selectors.netWorthExCpf(state);
 
   const [adding, setAdding]     = useState(false);
   const [newLabel, setNewLabel] = useState('');
 
-  // ── dnd-kit sensors ───────────────────────────────────────────────────────
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -55,11 +49,20 @@ export default function AssetGrid() {
     if (e.key === 'Escape') { setAdding(false); setNewLabel(''); }
   }
 
+  const totalRow = (label, value, bold = false) => (
+    <div className="flex items-center justify-between py-1.5">
+      <span className={`text-xs ${bold ? 'font-semibold text-gray-700' : 'text-gray-500'}`}>{label}</span>
+      <span className={`tabular-nums text-sm ${bold ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+        {formatSGD(value)}
+      </span>
+    </div>
+  );
+
   return (
     <Card title="Assets" padding="none">
       {/* Column headers */}
       <div className="flex items-center gap-3 px-5 pt-3 pb-1 border-b border-gray-100">
-        <div className="w-6 shrink-0" /> {/* drag handle column */}
+        <div className="w-6 shrink-0" />
         <div className="flex-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Category</div>
         <div className="flex items-center justify-center gap-1 text-xs font-semibold text-gray-400 uppercase tracking-wide w-32 hidden sm:flex shrink-0">
           Investable
@@ -79,7 +82,7 @@ export default function AssetGrid() {
         <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-36 text-right shrink-0">
           Value (SGD)
         </div>
-        <div className="w-5 shrink-0" /> {/* remove button column */}
+        <div className="w-5 shrink-0" />
       </div>
 
       {/* Sortable rows */}
@@ -93,52 +96,39 @@ export default function AssetGrid() {
         </SortableContext>
       </DndContext>
 
-      {/* Add category row */}
+      {/* Add category */}
       <div className="px-5 py-3 border-t border-gray-100">
         {adding ? (
           <div className="flex items-center gap-2">
             <input
-              autoFocus
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              onKeyDown={handleAddKey}
+              autoFocus value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)} onKeyDown={handleAddKey}
               placeholder="Category name…"
               className="flex-1 border border-green-400 rounded-md px-2.5 py-1.5 text-sm
                          focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-            <button
-              onClick={handleAddConfirm}
-              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm
-                         font-medium rounded-md transition-colors"
-            >
+            <button onClick={handleAddConfirm}
+              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors">
               Add
             </button>
-            <button
-              onClick={() => { setAdding(false); setNewLabel(''); }}
-              className="px-3 py-1.5 text-gray-500 hover:text-gray-700 text-sm rounded-md
-                         border border-gray-200 hover:border-gray-300 transition-colors"
-            >
+            <button onClick={() => { setAdding(false); setNewLabel(''); }}
+              className="px-3 py-1.5 text-gray-500 hover:text-gray-700 text-sm rounded-md border border-gray-200 hover:border-gray-300 transition-colors">
               Cancel
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setAdding(true)}
-            className="text-sm text-gray-400 hover:text-green-600 transition-colors
-                       flex items-center gap-1.5 font-medium"
-          >
+          <button onClick={() => setAdding(true)}
+            className="text-sm text-gray-400 hover:text-green-600 transition-colors flex items-center gap-1.5 font-medium">
             <span className="text-lg leading-none">+</span> Add category
           </button>
         )}
       </div>
 
-      {/* Totals footer */}
-      <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100
-                      bg-gray-50 rounded-b-xl">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</span>
-        <span className="text-sm font-bold tabular-nums text-gray-900">
-          {formatSGD(totalNetWorth)}
-        </span>
+      {/* Totals footer — 3 rows */}
+      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl space-y-0.5">
+        {totalRow('Total Net Worth',       totalNetWorth, true)}
+        {totalRow('Total Investable NW',   totalInvest)}
+        {totalRow('Total NW, Excl. CPF',   totalExCpf)}
       </div>
     </Card>
   );

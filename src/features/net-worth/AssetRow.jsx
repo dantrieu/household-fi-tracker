@@ -74,23 +74,24 @@ export default function AssetRow({ categoryKey }) {
       {isPortfolioFed && (
         <span className="text-xs text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 shrink-0">auto</span>
       )}
-      {/* Very subtle pencil — visible but not distracting */}
+      {/* Pencil emoji — small and muted, slanted so it reads as pencil */}
       <button
         onClick={startLabelEdit}
         aria-label={`Rename ${category.label}`}
-        className="text-gray-200 hover:text-gray-500 text-[9px] shrink-0 leading-none transition-colors"
+        className="text-[11px] opacity-25 hover:opacity-70 shrink-0 leading-none transition-opacity"
         title="Rename"
       >
-        ✏︎
+        ✏️
       </button>
     </div>
   );
 
-  const removeBtn = !isProtected ? (
+  // Show ✕ for everything except auto-portfolio-fed rows (SGX, US, Crypto)
+  const removeBtn = !isPortfolioFed ? (
     <button
       onClick={() => removeCategory(categoryKey)}
       aria-label={`Remove ${category.label}`}
-      className="text-gray-300 hover:text-red-400 text-xs shrink-0"
+      className="text-gray-300 hover:text-red-400 text-xs shrink-0 transition-colors"
     >
       ✕
     </button>

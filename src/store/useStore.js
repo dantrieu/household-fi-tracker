@@ -318,7 +318,7 @@ const useStore = create(
        * Save a manually-entered snapshot with custom totals (for past years).
        * @param {number} year
        * @param {string} label
-       * @param {{ total: number, investable: number, exCpf: number }} totals
+       * @param {{ total: number, investable: number }} totals
        */
       saveManualSnapshot(year, label, totals) {
         const snapshot = {
@@ -330,7 +330,7 @@ const useStore = create(
           totals: {
             total_net_worth:      totals.total     ?? 0,
             investable_net_worth: totals.investable ?? 0,
-            net_worth_ex_cpf:     totals.exCpf      ?? 0,
+            net_worth_ex_cpf:     0,
           },
           categories: {},
         };
@@ -356,7 +356,7 @@ const useStore = create(
                 totals: {
                   total_net_worth:      totals.total      ?? s.totals.total_net_worth,
                   investable_net_worth: totals.investable  ?? s.totals.investable_net_worth,
-                  net_worth_ex_cpf:     totals.exCpf       ?? s.totals.net_worth_ex_cpf,
+                  net_worth_ex_cpf:     s.totals.net_worth_ex_cpf ?? 0,
                 },
               } : {}),
             }

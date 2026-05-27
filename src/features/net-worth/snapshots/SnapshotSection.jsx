@@ -92,7 +92,6 @@ function ManualEntryForm() {
   const [label, setLabel]       = useState(`Year-end ${currentYear - 1}`);
   const [total, setTotal]       = useState(null);
   const [investable, setInvest] = useState(null);
-  const [exCpf, setExCpf]       = useState(null);
   const [saved, setSaved]       = useState(false);
   const [error, setError]       = useState('');
 
@@ -107,11 +106,11 @@ function ManualEntryForm() {
     if (isNaN(y) || y < 2000 || y > 2100) { setError('Enter a valid year (2000–2100)'); return; }
     if (!total) { setError('Total Net Worth is required'); return; }
     setError('');
-    saveManualSnapshot(y, label, { total, investable, exCpf });
+    saveManualSnapshot(y, label, { total, investable });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
     // Reset
-    setTotal(null); setInvest(null); setExCpf(null);
+    setTotal(null); setInvest(null);
   }
 
   return (
@@ -146,10 +145,6 @@ function ManualEntryForm() {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">Investable</label>
           <SgdInput value={investable} onChange={setInvest} placeholder="optional" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500">Excl. CPF</label>
-          <SgdInput value={exCpf} onChange={setExCpf} placeholder="optional" />
         </div>
       </div>
 

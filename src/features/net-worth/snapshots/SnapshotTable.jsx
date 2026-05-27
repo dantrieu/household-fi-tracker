@@ -41,12 +41,11 @@ function SnapshotRow({ snap }) {
   const deleteSnapshot = useStore((s) => s.deleteSnapshot);
   const updateSnapshot = useStore((s) => s.updateSnapshot);
 
-  const [editing, setEditing]       = useState(false);
-  const [labelDraft, setLabelDraft] = useState('');
-  const [yearDraft, setYearDraft]   = useState('');
-  const [totalDraft, setTotalDraft] = useState(null);
+  const [editing, setEditing]         = useState(false);
+  const [labelDraft, setLabelDraft]   = useState('');
+  const [yearDraft, setYearDraft]     = useState('');
+  const [totalDraft, setTotalDraft]   = useState(null);
   const [investDraft, setInvestDraft] = useState(null);
-  const [exCpfDraft, setExCpfDraft]   = useState(null);
 
   const {
     attributes, listeners, setNodeRef, setActivatorNodeRef,
@@ -65,7 +64,6 @@ function SnapshotRow({ snap }) {
     setYearDraft(String(snap.year));
     setTotalDraft(snap.totals.total_net_worth);
     setInvestDraft(snap.totals.investable_net_worth);
-    setExCpfDraft(snap.totals.net_worth_ex_cpf);
     setEditing(true);
   }
 
@@ -77,7 +75,6 @@ function SnapshotRow({ snap }) {
       totals: {
         total:      totalDraft  ?? snap.totals.total_net_worth,
         investable: investDraft ?? snap.totals.investable_net_worth,
-        exCpf:      exCpfDraft  ?? snap.totals.net_worth_ex_cpf,
       },
     });
     setEditing(false);
@@ -114,10 +111,6 @@ function SnapshotRow({ snap }) {
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-400 uppercase">Investable</span>
               <SgdDraftInput value={investDraft} onChange={setInvestDraft} placeholder="Investable" />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] text-gray-400 uppercase">Excl. CPF</span>
-              <SgdDraftInput value={exCpfDraft} onChange={setExCpfDraft} placeholder="Excl. CPF" />
             </div>
             <div className="flex gap-1.5 pb-0.5">
               <button onClick={commitEdit}
@@ -175,9 +168,6 @@ function SnapshotRow({ snap }) {
       <td className="py-3 pr-4 text-right tabular-nums text-gray-600 text-sm">
         {formatSGD(snap.totals.investable_net_worth)}
       </td>
-      <td className="py-3 pr-4 text-right tabular-nums text-gray-600 text-sm">
-        {formatSGD(snap.totals.net_worth_ex_cpf)}
-      </td>
       <td className="py-3 pr-4 text-right">
         <DeltaBadge delta={snap.delta} deltaPct={snap.deltaPct} />
       </td>
@@ -233,7 +223,6 @@ export default function SnapshotTable() {
             </th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Total NW</th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Investable</th>
-            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Excl. CPF</th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior Year</th>
             <th className="py-2" />
           </tr>
