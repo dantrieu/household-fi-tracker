@@ -1,5 +1,5 @@
 import useStore, { selectors } from '../../store/useStore';
-import { formatSGD } from '../../lib/format';
+import { yearsToFI, requiredAnnualSavings } from '../../lib/fi';
 import Card from '../../components/ui/Card';
 
 function InputRow({ label, hint, children }) {
@@ -45,20 +45,49 @@ function NumberInput({ value, onChange, placeholder, min = 0, max, step = 1, pre
 }
 
 export default function FIInputsPanel() {
-  const fi           = useStore((s) => s.fi_settings);
-  const setFiSetting = useStore((s) => s.setFiSetting);
-  const state        = useStore();
-  const metrics      = selectors.fiMetrics(state);
+  const fi               = useStore((s) => s.fi_settings);
+  const setFiSetting     = useStore((s) => s.setFiSetting);
+  const state            = useStore();
+  const investablePortfolio = selectors.investableNetWorth(state);
 
-  const impliedFIAge          = metrics.impliedFIAge;
-  const requiredAnnualSavings = metrics.requiredAnnualSavingsForAge;
-  const stopAtRetirement      = fi.stop_contributions_at_retirement ?? true;
+  const stopAtRetirement = fi.stop_contributions_at_retirement ?? true;
+
+  // Pre-compute FI target portfolio for live linkage
+  const swr = (fi.swr_pct ?? 4) / 100;
+  const annualReturnPct  = fi.assumed_annual_return_pct ?? 6;
+  const targetPortfolio  = fi.target_monthly_income_sgd
+    ? (fi.target_monthly_income_sgd * 12) / swr
+    : null;
+
+  // ── Annual savings → auto-update retirement age ────────────────────────────
+  function handleSavingsChange(newSavings) {
+    setFiSetting('annual_savings_sgd', newSavings);
+    if (newSavings != null && targetPortfolio != null && fi.current_age != null) {
+      const years = yearsToFI(investablePortfolio, newSavings, targetPortfolio, annualReturnPct);
+      if (years != null) {
+        setFiSetting('target_retirement_age', Math.round(fi.current_age + years));
+      }
+    }
+  }
+
+  // ── Retirement age → auto-update annual savings ────────────────────────────
+  function handleRetirementAgeChange(newAge) {
+    setFiSetting('target_retirement_age', newAge);
+    if (newAge != null && fi.current_age != null && newAge > fi.current_age && targetPortfolio != null) {
+      const n        = newAge - fi.current_age;
+      const required = requiredAnnualSavings(investablePortfolio, n, targetPortfolio, annualReturnPct);
+      if (required != null) {
+        // Round to nearest $1,000 for clean numbers
+        setFiSetting('annual_savings_sgd', Math.max(0, Math.round(required / 1000) * 1000));
+      }
+    }
+  }
 
   return (
     <Card title="Inputs">
       <div className="flex flex-col gap-5">
 
-        {/* ── Row 1: Target income + SWR ───────────────────────────────────── */}
+        {/* ── Target income + SWR ──────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">
           <InputRow
             label="Target monthly passive income"
@@ -89,7 +118,7 @@ export default function FIInputsPanel() {
           </InputRow>
         </div>
 
-        {/* ── Row 2: Current age + Annual return ───────────────────────────── */}
+        {/* ── Current age + Annual return ──────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">
           <InputRow label="Current age">
             <NumberInput
@@ -117,13 +146,20 @@ export default function FIInputsPanel() {
         </div>
 
         {/* ══ Linked: Annual savings ↔ Retirement age ════════════════════════
-            Changing either shows the consequence on the other in real-time.  */}
+            Each field updates the other automatically.
+            Savings ↑ → retirement age drops (reach target earlier).
+            Retirement age ↓ → required savings rises.              */}
         <div className="rounded-xl border-2 border-green-100 bg-green-50/40 p-4 flex flex-col gap-3">
-          <p className="text-xs font-semibold text-green-800 uppercase tracking-wide">
-            ⟷ Linked — adjust either to see the trade-off
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-green-800 uppercase tracking-wide">
+              ⟷ Linked
+            </span>
+            <span className="text-xs text-green-700/70">
+              — changing either updates the other automatically
+            </span>
+          </div>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
 
             {/* Annual savings */}
             <div className="flex flex-col gap-1">
@@ -132,25 +168,16 @@ export default function FIInputsPanel() {
               </label>
               <NumberInput
                 value={fi.annual_savings_sgd}
-                onChange={(v) => setFiSetting('annual_savings_sgd', v)}
+                onChange={handleSavingsChange}
                 placeholder="e.g. 36000"
                 step={1000}
                 prefix="S$"
               />
-              <div className={[
-                'mt-1 text-xs rounded px-2 py-1.5 leading-snug',
-                impliedFIAge != null
-                  ? 'bg-white border border-green-200 text-green-800'
-                  : 'text-gray-400',
-              ].join(' ')}>
-                {impliedFIAge != null
-                  ? <>→ FI at <strong>age {impliedFIAge}</strong></>
-                  : '→ FI age: fill all inputs'}
-              </div>
+              <p className="text-[11px] text-green-700/70">↑ savings → retirement age drops</p>
             </div>
 
             {/* Link icon */}
-            <div className="flex items-center justify-center pt-5 text-green-400 text-lg select-none">⟷</div>
+            <div className="text-green-400 text-xl select-none mt-3">⟷</div>
 
             {/* Target retirement age */}
             <div className="flex flex-col gap-1">
@@ -159,28 +186,17 @@ export default function FIInputsPanel() {
               </label>
               <NumberInput
                 value={fi.target_retirement_age}
-                onChange={(v) => setFiSetting('target_retirement_age', v)}
+                onChange={handleRetirementAgeChange}
                 placeholder="e.g. 55"
                 min={18}
                 step={1}
               />
-              <div className={[
-                'mt-1 text-xs rounded px-2 py-1.5 leading-snug',
-                requiredAnnualSavings != null
-                  ? 'bg-white border border-green-200 text-green-800'
-                  : 'text-gray-400',
-              ].join(' ')}>
-                {requiredAnnualSavings != null
-                  ? requiredAnnualSavings === 0
-                    ? <>→ Already on track 🎉</>
-                    : <>→ Need <strong>{formatSGD(requiredAnnualSavings)} / yr</strong></>
-                  : '→ Required savings: fill all inputs'}
-              </div>
+              <p className="text-[11px] text-green-700/70">↓ age → savings required rises</p>
             </div>
           </div>
 
           {/* Stop contributions toggle */}
-          <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1 border-t border-green-100">
+          <label className="flex items-start gap-2.5 cursor-pointer select-none pt-2 border-t border-green-100">
             <input
               type="checkbox"
               checked={stopAtRetirement}
@@ -194,8 +210,8 @@ export default function FIInputsPanel() {
               </p>
               <p className="text-xs text-gray-400 leading-snug mt-0.5">
                 {stopAtRetirement
-                  ? 'Chart shows portfolio drawn down at target income rate after retirement.'
-                  : 'Chart assumes contributions continue indefinitely (optimistic scenario).'}
+                  ? 'Portfolio drawn down at target income rate after retirement (realistic).'
+                  : 'Contributions assumed to continue past retirement (optimistic).'}
               </p>
             </div>
           </label>

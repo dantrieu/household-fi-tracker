@@ -14,54 +14,68 @@ import {
   Legend,
 } from 'recharts';
 
-// ─── Y-axis formatter (monthly income) ───────────────────────────────────────
+const CPF_PAYOUT_AGE = 65;
 
-function fmtIncome(value) {
-  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-  return `$${value}`;
+// ─── Axis formatters ──────────────────────────────────────────────────────────
+
+function fmtPortfolio(v) {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000)     return `$${(v / 1_000).toFixed(0)}K`;
+  return `$${v}`;
+}
+
+function fmtIncome(v) {
+  if (v >= 1000) return `$${(v / 1000).toFixed(0)}K`;
+  return `$${v}`;
 }
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 
-function ChartTooltip({ active, payload, label }) {
+function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
-  const cpfActive = d?.totalIncome > d?.portfolioIncome;
+  if (!d) return null;
+
+  const cpfAmount = (d.totalIncome ?? 0) - (d.portfolioIncome ?? 0);
+  const hasCpf    = cpfAmount > 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm min-w-[220px]">
-      <p className="font-semibold text-gray-800 mb-2">
-        {label}{d?.age != null ? ` · Age ${d.age}` : ''}
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm min-w-[230px]">
+      <p className="font-semibold text-gray-800 mb-2 pb-1.5 border-b border-gray-100">
+        {d.year}{d.age != null ? ` · Age ${d.age}` : ''}
       </p>
 
-      {/* Portfolio passive income */}
+      {/* Portfolio value (left axis) */}
       <div className="flex justify-between gap-4 mb-0.5">
-        <span className="text-green-700 font-medium">Portfolio income</span>
-        <span className="tabular-nums text-gray-800">{formatSGD(d?.portfolioIncome ?? 0)}/mo</span>
+        <span className="text-green-700 font-medium">Portfolio value</span>
+        <span className="tabular-nums text-gray-800">{formatSGD(d.portfolio ?? 0)}</span>
       </div>
 
-      {/* CPF add-on (only once active) */}
-      {cpfActive && (
+      <div className="border-t border-gray-100 my-1.5" />
+
+      {/* Monthly income breakdown (right axis) */}
+      <div className="flex justify-between gap-4 mb-0.5">
+        <span className="text-blue-600 font-medium">Portfolio income</span>
+        <span className="tabular-nums text-gray-800">{formatSGD(d.portfolioIncome ?? 0)}/mo</span>
+      </div>
+
+      {hasCpf && (
         <div className="flex justify-between gap-4 mb-0.5">
-          <span className="text-blue-600 font-medium">+ CPF LIFE</span>
-          <span className="tabular-nums text-gray-800">
-            {formatSGD((d?.totalIncome ?? 0) - (d?.portfolioIncome ?? 0))}/mo
-          </span>
+          <span className="text-purple-600 font-medium">+ CPF LIFE</span>
+          <span className="tabular-nums text-gray-800">{formatSGD(cpfAmount)}/mo</span>
         </div>
       )}
 
-      {/* Total */}
-      {cpfActive && (
+      {hasCpf && (
         <div className="flex justify-between gap-4 mt-1 pt-1 border-t border-gray-100">
-          <span className="text-blue-700 font-semibold">Total income</span>
-          <span className="tabular-nums font-semibold text-blue-800">{formatSGD(d?.totalIncome ?? 0)}/mo</span>
+          <span className="text-purple-700 font-semibold">Total income</span>
+          <span className="tabular-nums font-semibold text-purple-800">{formatSGD(d.totalIncome ?? 0)}/mo</span>
         </div>
       )}
 
-      {/* Target */}
-      <div className="flex justify-between gap-4 mt-1 pt-1 border-t border-gray-100">
-        <span className="text-gray-500">Target</span>
-        <span className="tabular-nums text-gray-600">{formatSGD(d?.target ?? 0)}/mo</span>
+      <div className="flex justify-between gap-4 mt-1.5 pt-1 border-t border-gray-100">
+        <span className="text-gray-500">Target income</span>
+        <span className="tabular-nums text-gray-600">{formatSGD(d.target ?? 0)}/mo</span>
       </div>
     </div>
   );
@@ -75,7 +89,7 @@ export default function FIProjectionChart() {
 
   if (!metrics.ready || !metrics.projectionSeries?.length) {
     return (
-      <Card title="Monthly Passive Income Projection">
+      <Card title="Portfolio Growth & Passive Income Projection">
         <p className="text-sm text-gray-400 text-center py-6">
           Fill in your inputs above to see the projection chart.
         </p>
@@ -86,6 +100,7 @@ export default function FIProjectionChart() {
   const {
     projectionSeries,
     targetMonthlyIncome,
+    targetPortfolioFull,
     cpfLifePayout,
     currentAge,
     retirementAge,
@@ -97,22 +112,19 @@ export default function FIProjectionChart() {
 
   const currentYear = new Date().getFullYear();
 
-  // ── Find crossover years directly from the series ────────────────────────
-  // (more accurate than pre-computed, since withdrawal phase affects the curve)
-  let fiYearPortfolio = null;  // when portfolioIncome first >= target
-  let fiYearTotal     = null;  // when totalIncome first >= target (with CPF)
+  // ── Detect income crossover years from series (more accurate with withdrawal phase) ──
+  let fiYearPortfolio = null;
+  let fiYearTotal     = null;
   for (const d of projectionSeries) {
     if (fiYearPortfolio == null && d.portfolioIncome >= targetMonthlyIncome) fiYearPortfolio = d.year;
     if (fiYearTotal     == null && d.totalIncome     >= targetMonthlyIncome) fiYearTotal     = d.year;
   }
 
-  // ── Trim series: show until a few years past first crossover ─────────────
+  // ── Trim: show a few years past first crossover ───────────────────────────
   const firstCrossover = fiYearTotal ?? fiYearPortfolio;
   const lastYear = projectionSeries[projectionSeries.length - 1]?.year;
-  const cutoff = firstCrossover
-    ? Math.min(firstCrossover + 4, lastYear)
-    : lastYear;
-  const data = projectionSeries.filter((d) => d.year <= cutoff);
+  const cutoff   = firstCrossover ? Math.min(firstCrossover + 4, lastYear) : lastYear;
+  const data     = projectionSeries.filter((d) => d.year <= cutoff);
 
   // ── Reference line positions ──────────────────────────────────────────────
   const retirementYear = retirementAge != null && currentAge != null
@@ -121,15 +133,18 @@ export default function FIProjectionChart() {
   const cpfKickInYear = currentAge != null
     ? currentYear + Math.max(0, CPF_PAYOUT_AGE - currentAge)
     : null;
-  const showCpfLine = cpfLifePayout > 0 && cpfKickInYear != null && cpfKickInYear <= cutoff;
+  const showCpfMarker = cpfLifePayout > 0 && cpfKickInYear != null && cpfKickInYear <= cutoff;
 
-  // ── Y-axis domain ─────────────────────────────────────────────────────────
-  const maxIncome = Math.max(...data.map((d) => d.totalIncome), targetMonthlyIncome);
-  const yMax = Math.ceil(maxIncome * 1.15 / 1000) * 1000;
+  // ── Y-axis domains ────────────────────────────────────────────────────────
+  const maxPortfolio = Math.max(...data.map((d) => d.portfolio), targetPortfolioFull);
+  const portfolioMax = Math.ceil(maxPortfolio * 1.15 / 100_000) * 100_000;
+
+  const maxIncome    = Math.max(...data.map((d) => d.totalIncome), targetMonthlyIncome);
+  const incomeMax    = Math.ceil(maxIncome * 1.2 / 1000) * 1000;
 
   return (
     <Card
-      title="Monthly Passive Income Projection"
+      title="Portfolio Growth & Passive Income Projection"
       action={
         <span className="text-xs text-gray-400">
           {annualReturnPct}% return · {swrPct ?? 4}% SWR · {formatSGD(annualSavings)}/yr
@@ -138,11 +153,11 @@ export default function FIProjectionChart() {
     >
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 12, right: 20, left: 8, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 12, right: 64, left: 8, bottom: 0 }}>
             <defs>
-              <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.03} />
+              <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
@@ -154,12 +169,28 @@ export default function FIProjectionChart() {
               tickLine={false}
               axisLine={false}
             />
+
+            {/* Left axis — portfolio value */}
             <YAxis
-              tickFormatter={fmtIncome}
-              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              yAxisId="left"
+              orientation="left"
+              tickFormatter={fmtPortfolio}
+              tick={{ fontSize: 11, fill: '#22c55e' }}
               tickLine={false}
               axisLine={false}
-              domain={[0, yMax]}
+              domain={[0, portfolioMax]}
+              width={60}
+            />
+
+            {/* Right axis — monthly income */}
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tickFormatter={fmtIncome}
+              tick={{ fontSize: 11, fill: '#3b82f6' }}
+              tickLine={false}
+              axisLine={false}
+              domain={[0, incomeMax]}
               width={52}
             />
 
@@ -171,9 +202,30 @@ export default function FIProjectionChart() {
               iconSize={8}
             />
 
-            {/* ── Retirement age — vertical marker ── */}
+            {/* ── Target portfolio — horizontal on left axis ── */}
+            <ReferenceLine
+              yAxisId="left"
+              y={targetPortfolioFull}
+              stroke="#94a3b8"
+              strokeDasharray="6 3"
+              strokeWidth={1.5}
+              label={{ value: `Target ${fmtPortfolio(targetPortfolioFull)}`, position: 'insideTopLeft', fontSize: 10, fill: '#94a3b8' }}
+            />
+
+            {/* ── Target monthly income — horizontal on right axis ── */}
+            <ReferenceLine
+              yAxisId="right"
+              y={targetMonthlyIncome}
+              stroke="#f97316"
+              strokeDasharray="6 3"
+              strokeWidth={1.5}
+              label={{ value: `${fmtIncome(targetMonthlyIncome)}/mo`, position: 'right', fontSize: 10, fill: '#f97316' }}
+            />
+
+            {/* ── Retirement year — vertical marker ── */}
             {retirementYear && retirementYear <= cutoff && stopContributionsAtRetirement && (
               <ReferenceLine
+                yAxisId="left"
                 x={retirementYear}
                 stroke="#f59e0b"
                 strokeDasharray="5 3"
@@ -182,20 +234,22 @@ export default function FIProjectionChart() {
               />
             )}
 
-            {/* ── CPF kick-in at 65 — vertical marker ── */}
-            {showCpfLine && cpfKickInYear !== retirementYear && (
+            {/* ── CPF kick-in at 65 ── */}
+            {showCpfMarker && cpfKickInYear !== retirementYear && (
               <ReferenceLine
+                yAxisId="left"
                 x={cpfKickInYear}
-                stroke="#3b82f6"
+                stroke="#8b5cf6"
                 strokeDasharray="4 3"
                 strokeWidth={1.5}
-                label={{ value: 'CPF @ 65', position: 'insideTopRight', fontSize: 10, fill: '#3b82f6' }}
+                label={{ value: 'CPF @ 65', position: 'insideTopRight', fontSize: 10, fill: '#8b5cf6' }}
               />
             )}
 
-            {/* ── FI crossover (portfolio only) ── */}
+            {/* ── FI crossover (portfolio income = target) ── */}
             {fiYearPortfolio && fiYearPortfolio <= cutoff && (
               <ReferenceLine
+                yAxisId="left"
                 x={fiYearPortfolio}
                 stroke="#16a34a"
                 strokeDasharray="4 3"
@@ -204,64 +258,69 @@ export default function FIProjectionChart() {
               />
             )}
 
-            {/* ── FI crossover with CPF (only if different) ── */}
+            {/* ── FI crossover with CPF (if earlier) ── */}
             {fiYearTotal && fiYearTotal !== fiYearPortfolio && fiYearTotal <= cutoff && (
               <ReferenceLine
+                yAxisId="left"
                 x={fiYearTotal}
-                stroke="#2563eb"
+                stroke="#8b5cf6"
                 strokeDasharray="4 3"
                 strokeWidth={1.5}
-                label={{ value: `FI+CPF ${fiYearTotal}`, position: 'insideTopLeft', fontSize: 10, fill: '#2563eb' }}
+                label={{ value: `FI+CPF ${fiYearTotal}`, position: 'insideTopLeft', fontSize: 10, fill: '#8b5cf6' }}
               />
             )}
 
-            {/* ── Target income — horizontal line ── */}
-            <ReferenceLine
-              y={targetMonthlyIncome}
-              stroke="#6b7280"
-              strokeDasharray="6 3"
-              strokeWidth={1.5}
-              label={{ value: `Target ${formatSGD(targetMonthlyIncome)}/mo`, position: 'right', fontSize: 10, fill: '#6b7280' }}
-            />
-
-            {/* ── Portfolio passive income (green area) ── */}
+            {/* ── Portfolio value (green area, left axis) ── */}
             <Area
+              yAxisId="left"
               type="monotone"
-              dataKey="portfolioIncome"
-              name="Portfolio income"
+              dataKey="portfolio"
+              name="Portfolio value"
               stroke="#22c55e"
               strokeWidth={2.5}
-              fill="url(#incomeGrad)"
+              fill="url(#portfolioGrad)"
               dot={false}
               activeDot={{ r: 4, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
             />
 
-            {/* ── Total income including CPF LIFE (blue line, step-up at 65) ── */}
+            {/* ── Monthly portfolio income (blue line, right axis) ── */}
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="portfolioIncome"
+              name="Portfolio income/mo"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+            />
+
+            {/* ── Total income incl. CPF (purple line, right axis, steps up at 65) ── */}
             {cpfLifePayout > 0 && (
               <Line
+                yAxisId="right"
                 type="stepAfter"
                 dataKey="totalIncome"
-                name="Portfolio + CPF income"
-                stroke="#3b82f6"
+                name="Income + CPF/mo"
+                stroke="#8b5cf6"
                 strokeWidth={2}
+                strokeDasharray="4 2"
                 dot={false}
-                activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
               />
             )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-        <span>📈 Green = portfolio passive income ({swrPct ?? 4}% SWR)</span>
-        {cpfLifePayout > 0 && <span>🔵 Blue = portfolio + CPF LIFE (steps up at 65)</span>}
-        {stopContributionsAtRetirement && retirementYear && (
-          <span>🟡 Amber line = retirement (withdrawal begins)</span>
-        )}
+      {/* Legend / key */}
+      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-400">
+        <span>🟢 Green area = portfolio value (left axis)</span>
+        <span>🔵 Blue line = portfolio passive income/mo (right)</span>
+        {cpfLifePayout > 0 && <span>🟣 Purple line = income + CPF LIFE from 65 (right)</span>}
+        <span>— Grey dashed = target portfolio</span>
+        <span>— Orange dashed = target monthly income</span>
       </div>
     </Card>
   );
 }
-
-// Constant needed inside component
-const CPF_PAYOUT_AGE = 65;
