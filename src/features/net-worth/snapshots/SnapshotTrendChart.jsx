@@ -44,7 +44,7 @@ export default function SnapshotTrendChart() {
     year: String(s.year),
     'Total NW':      s.totals.total_net_worth,
     'Investable':    s.totals.investable_net_worth,
-    'ex-CPF':        s.totals.net_worth_ex_cpf,
+    'Excl. CPF':     s.totals.net_worth_ex_cpf,
   }));
 
   return (
@@ -71,7 +71,7 @@ export default function SnapshotTrendChart() {
         />
         <Area type="monotone" dataKey="Total NW"   stroke="#22c55e" fill="url(#gradTotal)"  strokeWidth={2} dot={{ r: 3 }} />
         <Area type="monotone" dataKey="Investable" stroke="#3b82f6" fill="url(#gradInvest)" strokeWidth={2} dot={{ r: 3 }} />
-        <Area type="monotone" dataKey="ex-CPF"     stroke="#f59e0b" fill="none"             strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} />
+        <Area type="monotone" dataKey="Excl. CPF"  stroke="#f59e0b" fill="none"             strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 3 }} />
       </AreaChart>
     </ResponsiveContainer>
   );

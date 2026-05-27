@@ -204,7 +204,7 @@ export default function SnapshotTable() {
             </th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Total NW</th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Investable</th>
-            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">ex-CPF</th>
+            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Excl. CPF</th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior Year</th>
             <th className="py-2" />
           </tr>

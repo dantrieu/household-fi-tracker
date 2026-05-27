@@ -66,7 +66,7 @@ export default function AssetRow({ categoryKey }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 py-3 px-1 group"
+      className="flex items-center gap-2 sm:gap-3 py-3 px-1 group"
     >
       {/* Drag handle */}
       <button
@@ -128,7 +128,7 @@ export default function AssetRow({ categoryKey }) {
       </div>
 
       {/* Value */}
-      <div className="w-36 text-right shrink-0">
+      <div className="w-24 sm:w-36 text-right shrink-0">
         <EditableNumber
           value={category.value}
           onSave={(v) => setCategoryValue(categoryKey, v)}

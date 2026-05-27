@@ -37,7 +37,7 @@ export default function SummaryCards() {
         tooltip="Assets flagged as investable — the pool used to generate passive income in FI Forecast"
       />
       <SummaryCard
-        label="Net Worth ex-CPF"
+        label="Net Worth Excl. CPF"
         value={exCpf}
         tooltip="Total minus CPF — shows liquid wealth excluding retirement savings"
       />

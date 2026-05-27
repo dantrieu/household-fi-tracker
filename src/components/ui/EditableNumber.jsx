@@ -52,7 +52,7 @@ export default function EditableNumber({ value, onSave, readOnly = false, classN
         allowNegative={false}
         onBlur={commit}
         onKeyDown={handleKeyDown}
-        className="w-36 text-right tabular-nums border border-green-400 rounded px-2 py-0.5
+        className="w-full text-right tabular-nums border border-green-400 rounded px-2 py-0.5
                    text-sm font-medium text-gray-900 focus:outline-none focus:ring-2
                    focus:ring-green-500 focus:ring-offset-1"
       />
