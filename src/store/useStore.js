@@ -273,11 +273,12 @@ const useStore = create(
       // ── Snapshot actions ─────────────────────────────────────────────────
 
       /**
-       * Save current net worth state as a year-end snapshot.
-       * @param {number} year  e.g. 2024
-       * @param {string} [label]  e.g. "Year-end 2024"
+       * Save current net worth state as a snapshot.
+       * @param {number} year   e.g. 2024
+       * @param {number} month  1-12
+       * @param {string} [label]
        */
-      saveSnapshot(year, label) {
+      saveSnapshot(year, month, label) {
         const state = get();
         const cats = state.net_worth.categories;
 
@@ -294,7 +295,8 @@ const useStore = create(
         const snapshot = {
           id: String(Date.now()),
           year: Number(year),
-          label: label || `Year-end ${year}`,
+          month: Number(month),
+          label: label || `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`,
           saved_at: new Date().toISOString(),
           totals: {
             total_net_worth: total,
@@ -306,25 +308,27 @@ const useStore = create(
 
         set((state) => ({
           last_modified: new Date().toISOString(),
-          // Replace same-year snapshot; append new one (no auto-sort — display order is user-defined)
+          // Replace snapshot with same year+month; append new one
           snapshots: [
-            ...state.snapshots.filter((s) => s.year !== Number(year)),
+            ...state.snapshots.filter((s) => !(s.year === Number(year) && (s.month ?? 12) === Number(month))),
             snapshot,
           ],
         }));
       },
 
       /**
-       * Save a manually-entered snapshot with custom totals (for past years).
+       * Save a manually-entered snapshot with custom totals (for past months/years).
        * @param {number} year
+       * @param {number} month  1-12
        * @param {string} label
        * @param {{ total: number, investable: number }} totals
        */
-      saveManualSnapshot(year, label, totals) {
+      saveManualSnapshot(year, month, label, totals) {
         const snapshot = {
           id: String(Date.now()),
           year: Number(year),
-          label: label || `Year-end ${year}`,
+          month: Number(month),
+          label: label || `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`,
           saved_at: new Date().toISOString(),
           manual: true,
           totals: {
@@ -337,21 +341,22 @@ const useStore = create(
         set((state) => ({
           last_modified: new Date().toISOString(),
           snapshots: [
-            ...state.snapshots.filter((s) => s.year !== Number(year)),
+            ...state.snapshots.filter((s) => !(s.year === Number(year) && (s.month ?? 12) === Number(month))),
             snapshot,
           ],
         }));
       },
 
-      /** Update snapshot label, year, and/or totals. */
-      updateSnapshot(id, { label, year, totals }) {
+      /** Update snapshot label, year, month, and/or totals. */
+      updateSnapshot(id, { label, year, month, totals }) {
         set((state) => ({
           last_modified: new Date().toISOString(),
           snapshots: state.snapshots.map((s) =>
             s.id !== id ? s : {
               ...s,
-              ...(label  != null ? { label } : {}),
+              ...(label  != null ? { label }              : {}),
               ...(year   != null ? { year: Number(year) } : {}),
+              ...(month  != null ? { month: Number(month) } : {}),
               ...(totals != null ? {
                 totals: {
                   total_net_worth:      totals.total      ?? s.totals.total_net_worth,
@@ -515,12 +520,15 @@ export const selectors = {
    * Delta is always computed year-over-year regardless of display order.
    */
   snapshotsWithDelta(state) {
-    // Build a year-sorted index for delta lookup
-    const byYear = [...state.snapshots].sort((a, b) => a.year - b.year);
+    // Build a chronological index (year then month) for delta lookup
+    const byDate = [...state.snapshots].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return (a.month ?? 12) - (b.month ?? 12);
+    });
 
     return state.snapshots.map((snap) => {
-      const idxInYear = byYear.findIndex((s) => s.id === snap.id);
-      const prior = idxInYear > 0 ? byYear[idxInYear - 1] : null;
+      const idxInYear = byDate.findIndex((s) => s.id === snap.id);
+      const prior = idxInYear > 0 ? byDate[idxInYear - 1] : null;
       const delta = prior
         ? snap.totals.total_net_worth - prior.totals.total_net_worth
         : null;

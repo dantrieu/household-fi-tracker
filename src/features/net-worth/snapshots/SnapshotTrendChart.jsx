@@ -28,9 +28,19 @@ function formatYAxis(value) {
   return `S$${value}`;
 }
 
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function snapXLabel(snap) {
+  if (!snap.month) return String(snap.year);
+  return `${MONTHS_SHORT[snap.month - 1]} ${String(snap.year).slice(2)}`;
+}
+
 export default function SnapshotTrendChart() {
   const state = useStore();
-  const snapshots = [...state.snapshots].sort((a, b) => a.year - b.year);
+  const snapshots = [...state.snapshots].sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return (a.month ?? 12) - (b.month ?? 12);
+  });
 
   if (snapshots.length < 2) {
     return (
@@ -41,7 +51,7 @@ export default function SnapshotTrendChart() {
   }
 
   const data = snapshots.map((s) => ({
-    year: String(s.year),
+    date:         snapXLabel(s),
     'Total NW':   s.totals.total_net_worth,
     'Investable': s.totals.investable_net_worth,
   }));
@@ -60,7 +70,7 @@ export default function SnapshotTrendChart() {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-        <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#9ca3af' }} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} />
         <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: '#9ca3af' }} width={64} />
         <Tooltip content={<CustomTooltip />} />
         <Legend

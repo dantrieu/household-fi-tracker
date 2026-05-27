@@ -6,7 +6,13 @@ import SnapshotTable from './SnapshotTable';
 import SnapshotTrendChart from './SnapshotTrendChart';
 import { exportJSON } from '../../../lib/storage';
 
-// ── Small SGD input used in the manual entry form ─────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function autoLabel(month, year) {
+  return `${MONTHS[Number(month) - 1]} ${year}`;
+}
+
+// ── Small SGD input ───────────────────────────────────────────────────────────
 function SgdInput({ value, onChange, placeholder }) {
   return (
     <div className="relative">
@@ -26,44 +32,74 @@ function SgdInput({ value, onChange, placeholder }) {
   );
 }
 
+// ── Month select ──────────────────────────────────────────────────────────────
+function MonthSelect({ value, onChange }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+                 bg-white"
+    >
+      {MONTHS.map((m, i) => (
+        <option key={i + 1} value={i + 1}>{m}</option>
+      ))}
+    </select>
+  );
+}
+
 // ── Save current snapshot form ────────────────────────────────────────────────
 function SaveCurrentForm() {
-  const currentYear = new Date().getFullYear();
+  const now         = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+
   const [year, setYear]   = useState(String(currentYear));
-  const [label, setLabel] = useState(`Year-end ${currentYear}`);
+  const [month, setMonth] = useState(currentMonth);
+  const [label, setLabel] = useState(autoLabel(currentMonth, currentYear));
   const [saved, setSaved] = useState(false);
   const saveSnapshot = useStore((s) => s.saveSnapshot);
 
   function handleYearChange(e) {
     const y = e.target.value;
     setYear(y);
-    setLabel(`Year-end ${y}`);
+    setLabel(autoLabel(month, y));
+  }
+
+  function handleMonthChange(m) {
+    setMonth(m);
+    setLabel(autoLabel(m, year));
   }
 
   function handleSave() {
     const y = parseInt(year, 10);
     if (isNaN(y) || y < 2000 || y > 2100) return;
-    saveSnapshot(y, label);
+    saveSnapshot(y, month, label);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 w-20">
+        <label className="text-xs font-medium text-gray-500">Month</label>
+        <MonthSelect value={month} onChange={handleMonthChange} />
+      </div>
+      <div className="flex flex-col gap-1 w-24">
         <label className="text-xs font-medium text-gray-500">Year</label>
         <input
           type="number" min="2000" max="2100"
           value={year} onChange={handleYearChange}
-          className="w-24 border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
+          className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
       </div>
-      <div className="flex flex-col gap-1 flex-1 min-w-40">
+      <div className="flex flex-col gap-1 flex-1 min-w-36">
         <label className="text-xs font-medium text-gray-500">Label</label>
         <input
           type="text" value={label} onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g. Year-end 2024"
+          placeholder="e.g. Jan 2025"
           className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
@@ -89,7 +125,8 @@ function ManualEntryForm() {
   const saveManualSnapshot = useStore((s) => s.saveManualSnapshot);
 
   const [year, setYear]         = useState(String(currentYear - 1));
-  const [label, setLabel]       = useState(`Year-end ${currentYear - 1}`);
+  const [month, setMonth]       = useState(12);
+  const [label, setLabel]       = useState(autoLabel(12, currentYear - 1));
   const [total, setTotal]       = useState(null);
   const [investable, setInvest] = useState(null);
   const [saved, setSaved]       = useState(false);
@@ -98,7 +135,12 @@ function ManualEntryForm() {
   function handleYearChange(e) {
     const y = e.target.value;
     setYear(y);
-    setLabel(`Year-end ${y}`);
+    setLabel(autoLabel(month, y));
+  }
+
+  function handleMonthChange(m) {
+    setMonth(m);
+    setLabel(autoLabel(m, year));
   }
 
   function handleSave() {
@@ -106,21 +148,24 @@ function ManualEntryForm() {
     if (isNaN(y) || y < 2000 || y > 2100) { setError('Enter a valid year (2000–2100)'); return; }
     if (!total) { setError('Total Net Worth is required'); return; }
     setError('');
-    saveManualSnapshot(y, label, { total, investable });
+    saveManualSnapshot(y, month, label, { total, investable });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-    // Reset
     setTotal(null); setInvest(null);
   }
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-gray-500">
-        Enter historical data you already know — e.g. net worth from a past year-end.
-        Only <strong>Total Net Worth</strong> is required; the others are optional.
+        Enter historical data you already know.
+        Only <strong>Total Net Worth</strong> is required; Investable is optional.
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500">Month</label>
+          <MonthSelect value={month} onChange={handleMonthChange} />
+        </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">Year</label>
           <input
@@ -193,7 +238,6 @@ export default function SnapshotSection() {
     >
       {/* ── Add snapshot area ── */}
       <div className="px-5 py-4 border-b border-gray-100 space-y-3">
-        {/* Mode toggle */}
         <div className="flex gap-1.5">
           <button className={tabCls('current')} onClick={() => setMode('current')}>
             Save current

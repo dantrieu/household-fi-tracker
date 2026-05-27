@@ -20,6 +20,13 @@ import useStore, { selectors } from '../../../store/useStore';
 import { formatSGD } from '../../../lib/format';
 import DeltaBadge from '../../../components/ui/DeltaBadge';
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function snapDate(snap) {
+  if (!snap.month) return String(snap.year);
+  return `${MONTHS[snap.month - 1]} ${snap.year}`;
+}
+
 function SgdDraftInput({ value, onChange, placeholder }) {
   return (
     <div className="relative">
@@ -44,6 +51,7 @@ function SnapshotRow({ snap }) {
   const [editing, setEditing]         = useState(false);
   const [labelDraft, setLabelDraft]   = useState('');
   const [yearDraft, setYearDraft]     = useState('');
+  const [monthDraft, setMonthDraft]   = useState(12);
   const [totalDraft, setTotalDraft]   = useState(null);
   const [investDraft, setInvestDraft] = useState(null);
 
@@ -62,6 +70,7 @@ function SnapshotRow({ snap }) {
   function startEdit() {
     setLabelDraft(snap.label);
     setYearDraft(String(snap.year));
+    setMonthDraft(snap.month ?? 12);
     setTotalDraft(snap.totals.total_net_worth);
     setInvestDraft(snap.totals.investable_net_worth);
     setEditing(true);
@@ -72,6 +81,7 @@ function SnapshotRow({ snap }) {
     updateSnapshot(snap.id, {
       label:  labelDraft.trim() || snap.label,
       year:   !isNaN(year) ? year : snap.year,
+      month:  monthDraft,
       totals: {
         total:      totalDraft  ?? snap.totals.total_net_worth,
         investable: investDraft ?? snap.totals.investable_net_worth,
@@ -90,6 +100,19 @@ function SnapshotRow({ snap }) {
       <tr ref={setNodeRef} style={style} className="bg-green-50">
         <td colSpan={6} className="py-2.5 px-3">
           <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-400 uppercase">Month</span>
+              <select
+                value={monthDraft}
+                onChange={(e) => setMonthDraft(Number(e.target.value))}
+                className="w-20 border border-green-400 rounded px-1.5 py-1 text-sm
+                           focus:outline-none focus:ring-1 focus:ring-green-500 bg-white"
+              >
+                {MONTHS.map((m, i) => (
+                  <option key={i + 1} value={i + 1}>{m}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-400 uppercase">Year</span>
               <input type="number" value={yearDraft}
@@ -150,15 +173,17 @@ function SnapshotRow({ snap }) {
         </button>
       </td>
 
-      {/* Label — click to edit */}
+      {/* Date + label — click to edit */}
       <td className="py-3 pr-4">
         <button
           onClick={startEdit}
-          className="font-semibold text-gray-800 text-left hover:text-green-700
-                     hover:underline decoration-dashed underline-offset-2 transition-colors"
+          className="text-left hover:text-green-700 transition-colors group/cell"
           title="Click to edit"
         >
-          {snap.label}
+          <span className="text-xs text-gray-400 block leading-tight">{snapDate(snap)}</span>
+          <span className="font-semibold text-gray-800 hover:underline decoration-dashed underline-offset-2 text-sm">
+            {snap.label}
+          </span>
         </button>
       </td>
 
@@ -219,11 +244,11 @@ export default function SnapshotTable() {
           <tr className="border-b border-gray-100 text-left">
             <th className="py-2 w-5" />
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              Year / Label
+              Date / Label
             </th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Total NW</th>
             <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Investable</th>
-            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior Year</th>
+            <th className="py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior</th>
             <th className="py-2" />
           </tr>
         </thead>
