@@ -62,16 +62,19 @@ export default function EditableNumber({ value, onSave, readOnly = false, classN
   return (
     <span
       onClick={startEdit}
-      title={readOnly ? 'Auto-updated from Portfolio' : 'Click to edit'}
+      title={readOnly ? 'Auto-updated from Portfolio' : 'Tap to edit'}
       className={[
-        'tabular-nums font-medium text-gray-900 text-sm',
+        'tabular-nums font-medium text-gray-900 text-sm inline-flex items-center gap-1',
         readOnly
           ? 'cursor-default text-gray-500'
-          : 'cursor-pointer hover:text-green-700 hover:underline decoration-dashed underline-offset-2',
+          : 'cursor-pointer hover:text-green-700',
         className,
       ].join(' ')}
     >
       {formatSGD(value)}
+      {!readOnly && (
+        <span className="text-[10px] text-gray-300 hover:text-gray-500">✏</span>
+      )}
     </span>
   );
 }

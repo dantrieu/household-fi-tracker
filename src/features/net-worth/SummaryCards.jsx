@@ -4,13 +4,14 @@ import { formatSGD } from '../../lib/format';
 function SummaryCard({ label, value, highlight = false, tooltip }) {
   return (
     <div
-      className="rounded-xl border bg-white p-5 flex flex-col gap-1 border-gray-200"
+      className="rounded-xl border bg-white border-gray-200
+                 p-3 sm:p-5 flex flex-col gap-0.5 sm:gap-1"
       title={tooltip}
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className={`text-2xl font-bold tabular-nums ${highlight ? 'text-green-600' : 'text-gray-900'}`}>
+      <p className={`text-lg sm:text-2xl font-bold tabular-nums ${highlight ? 'text-green-600' : 'text-gray-900'}`}>
         {formatSGD(value)}
       </p>
     </div>
@@ -24,7 +25,7 @@ export default function SummaryCards() {
   const exCpf      = selectors.netWorthExCpf(state);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-3 gap-2 sm:gap-4">
       <SummaryCard
         label="Total Net Worth"
         value={total}
@@ -32,12 +33,12 @@ export default function SummaryCards() {
         tooltip="Sum of all asset categories"
       />
       <SummaryCard
-        label="Investable Net Worth"
+        label="Investable"
         value={investable}
         tooltip="Assets flagged as investable — the pool used to generate passive income in FI Forecast"
       />
       <SummaryCard
-        label="Net Worth Excl. CPF"
+        label="Excl. CPF"
         value={exCpf}
         tooltip="Total minus CPF — shows liquid wealth excluding retirement savings"
       />
