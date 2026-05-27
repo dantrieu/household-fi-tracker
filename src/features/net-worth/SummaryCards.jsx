@@ -34,7 +34,7 @@ export default function SummaryCards() {
       <SummaryCard
         label="Investable Net Worth"
         value={investable}
-        tooltip="Assets flagged as investable — the pool that funds retirement via 4% SWR"
+        tooltip="Assets flagged as investable — the pool used to generate passive income in FI Forecast"
       />
       <SummaryCard
         label="Net Worth ex-CPF"

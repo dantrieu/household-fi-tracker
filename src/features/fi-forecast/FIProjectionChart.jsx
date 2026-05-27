@@ -65,6 +65,7 @@ export default function FIProjectionChart() {
     currentAge,
     annualReturnPct,
     annualSavings,
+    swrPct,
   } = metrics;
 
   // Trim series at reasonable endpoint (a few years past FI or max 40y)
@@ -82,7 +83,7 @@ export default function FIProjectionChart() {
       title="FI Projection — Portfolio Growth vs Target"
       action={
         <span className="text-xs text-gray-400">
-          {annualReturnPct}% return · {formatSGD(annualSavings)}/yr savings
+          {annualReturnPct}% return · {swrPct ?? 4}% SWR · {formatSGD(annualSavings)}/yr
         </span>
       }
     >
@@ -202,9 +203,10 @@ export default function FIProjectionChart() {
       </div>
 
       <p className="mt-3 text-xs text-gray-400 leading-relaxed">
-        📈 Green line = projected portfolio. Grey dashed = FI target without CPF (25× annual expenses).
-        Blue dashed = FI target with CPF LIFE{cpfLifePayout > 0 ? ` (est. ${formatSGD(cpfLifePayout)}/mo from age 65)` : ''}.
-        Target steps down once CPF LIFE activates at 65.
+        📈 Green = projected portfolio growth. Grey dashed = FI target at {swrPct ?? 4}% SWR (annual income ÷ {swrPct ?? 4}%).
+        {cpfLifePayout > 0
+          ? ` Blue dashed = target with CPF LIFE (est. ${formatSGD(cpfLifePayout)}/mo from age 65 — reduces required portfolio).`
+          : ''}
       </p>
     </Card>
   );

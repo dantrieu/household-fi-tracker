@@ -425,6 +425,7 @@ export const selectors = {
       annualSavings:        state.fi_settings.annual_savings_sgd,
       annualReturnPct:      state.fi_settings.assumed_annual_return_pct ?? 6,
       cpfPersons:           state.fi_settings.cpf_persons ?? 1,
+      swrPct:               state.fi_settings.swr_pct ?? 4,
     });
   },
 

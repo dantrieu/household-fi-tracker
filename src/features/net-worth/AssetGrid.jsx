@@ -66,7 +66,7 @@ export default function AssetGrid() {
           <span
             title={
               'Investable assets are included in passive income calculation\n' +
-              'under FI Forecast using 4% SWR.\n' +
+              'under FI Forecast (SWR set in FI Forecast inputs).\n' +
               'Non-investable assets (e.g. own-stay property, CPF) are excluded.'
             }
             className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full

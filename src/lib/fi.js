@@ -1,26 +1,18 @@
-// ─── FI Model Logic (base model) ──────────────────────────────────────────────
+// ─── FI Model Logic ───────────────────────────────────────────────────────────
 // Based on PRD Section 10 (Appendix — FI Model Logic)
-// Uses 4% Safe Withdrawal Rate applied to the investable asset pool only.
+// Safe Withdrawal Rate is configurable (default 4%).
 
 const CURRENT_YEAR   = new Date().getFullYear();
 const CPF_PAYOUT_AGE = 65;        // CPF LIFE starts at 65
 
 // ─── CPF LIFE auto-estimate ────────────────────────────────────────────────────
-// Approximation: FRS 2025 ($213,000) grows at 3.5% p.a. to age 55,
-// then CPF LIFE pays out ≈ 0.73% of ERS/FRS monthly.
-// This is a directional estimate — actual payout depends on CPF balance,
-// escalation elections, and policy changes.
-
 const FRS_2025       = 213_000;   // Full Retirement Sum 2025
 const FRS_GROWTH_PCT = 0.035;     // ~3.5% p.a. historical escalation
 const PAYOUT_RATE    = 0.0073;    // ~0.73% of FRS → monthly payout
 
 /**
  * Estimate monthly CPF LIFE payout at age 65 for someone currently age `currentAge`.
- * Returns 0 if age is unknown or already past 55 (too late to project from FRS).
- *
- * @param {number|null} currentAge
- * @returns {number}  Estimated monthly payout (SGD)
+ * Returns 0 if age is unknown or already past 55.
  */
 export function estimateCpfLifePayout(currentAge) {
   if (!currentAge || currentAge >= 55) return 0;
@@ -29,15 +21,10 @@ export function estimateCpfLifePayout(currentAge) {
   return Math.round(projectedFRS * PAYOUT_RATE);
 }
 
-// ─── Simulation ────────────────────────────────────────────────────────────────
+// ─── Simulation helpers ────────────────────────────────────────────────────────
 
 /**
  * Simulate year-by-year portfolio growth until target is reached.
- * @param {number} currentPortfolio  Starting investable portfolio (SGD)
- * @param {number} annualContribution  Annual savings added (SGD)
- * @param {number} targetPortfolio  Portfolio size needed for FI (SGD)
- * @param {number} annualReturnPct  Assumed annual return, e.g. 6 for 6%
- * @param {number} maxYears  Cap to avoid infinite loop (default 60)
  * @returns {number|null}  Years to reach target, or null if not reached in maxYears
  */
 export function yearsToFI(currentPortfolio, annualContribution, targetPortfolio, annualReturnPct, maxYears = 60) {
@@ -48,20 +35,34 @@ export function yearsToFI(currentPortfolio, annualContribution, targetPortfolio,
     portfolio = portfolio * (1 + r) + annualContribution;
     if (portfolio >= targetPortfolio) return year;
   }
-  return null; // not reachable within maxYears
+  return null;
 }
 
 /**
+ * Annual savings (PMT) required to grow `pv` to `targetFV` in `n` years at `annualReturnPct`.
+ * Uses the future-value-of-annuity formula solved for PMT:
+ *   FV = PV×(1+r)^n + PMT × ((1+r)^n − 1) / r
+ *   → PMT = (FV − PV×(1+r)^n) × r / ((1+r)^n − 1)
+ *
+ * @returns {number|null}  Required annual savings, or null if n ≤ 0 or already there
+ */
+export function requiredAnnualSavings(pv, n, targetFV, annualReturnPct) {
+  if (n <= 0) return null;
+  const r = annualReturnPct / 100;
+  const growthFactor = Math.pow(1 + r, n);
+  const pvFutureValue = pv * growthFactor;
+  if (pvFutureValue >= targetFV) return 0; // already on track without savings
+  if (r === 0) return (targetFV - pvFutureValue) / n;
+  return ((targetFV - pvFutureValue) * r) / (growthFactor - 1);
+}
+
+// ─── Projection series (for chart) ────────────────────────────────────────────
+
+/**
  * Build a year-by-year projection series for the chart.
- * Returns an array of data points, one per year for up to maxYears.
- *
- * Each point:
- *   { year, age, portfolio, targetWithoutCPF, targetWithCPF }
- *
- * The CPF-offset target (targetWithCPF) steps DOWN once the person turns 65,
- * because CPF LIFE then covers part of the income need.
  *
  * @param {object} params
+ * @param {number} params.swrPct  Safe withdrawal rate, e.g. 4 for 4%
  * @returns {{ year, age, portfolio, targetWithoutCPF, targetWithCPF }[]}
  */
 export function buildProjectionSeries({
@@ -71,12 +72,14 @@ export function buildProjectionSeries({
   cpfLifePayout,
   currentAge,
   annualReturnPct,
+  swrPct = 4,
   maxYears = 60,
 }) {
-  const r = annualReturnPct / 100;
-  const targetFull = (targetMonthlyIncome * 12) / 0.04;
+  const swr = swrPct / 100;
+  const r   = annualReturnPct / 100;
+  const targetFull = (targetMonthlyIncome * 12) / swr;
   const effectiveMonthlyNeedWithCPF = Math.max(0, targetMonthlyIncome - cpfLifePayout);
-  const targetWithCPF = (effectiveMonthlyNeedWithCPF * 12) / 0.04;
+  const targetWithCPFValue = (effectiveMonthlyNeedWithCPF * 12) / swr;
 
   const series = [];
   let portfolio = investablePortfolio;
@@ -84,7 +87,6 @@ export function buildProjectionSeries({
   for (let y = 0; y <= maxYears; y++) {
     const age  = currentAge ? currentAge + y : null;
     const year = CURRENT_YEAR + y;
-    // CPF LIFE reduces required portfolio only once user is ≥ 65
     const cpfActive = age != null && age >= CPF_PAYOUT_AGE;
 
     series.push({
@@ -92,10 +94,9 @@ export function buildProjectionSeries({
       age,
       portfolio: Math.round(portfolio),
       targetWithoutCPF: Math.round(targetFull),
-      targetWithCPF: Math.round(cpfActive ? targetWithCPF : targetFull),
+      targetWithCPF: Math.round(cpfActive ? targetWithCPFValue : targetFull),
     });
 
-    // Grow portfolio for next year
     portfolio = portfolio * (1 + r) + annualContribution;
   }
 
@@ -108,13 +109,14 @@ export function buildProjectionSeries({
  * Compute all FI metrics from current state values.
  *
  * @param {object} params
- * @param {number}  params.investablePortfolio   Current investable NW (SGD)
- * @param {number|null} params.targetMonthlyIncome  User's FI target (SGD/month)
+ * @param {number}      params.investablePortfolio
+ * @param {number|null} params.targetMonthlyIncome
  * @param {number|null} params.currentAge
- * @param {number|null} params.retirementAge       Target retirement age
- * @param {number|null} params.monthlySavings      Monthly contributions (SGD)
- * @param {number}  params.annualReturnPct        Assumed annual return %
- * @returns {object}  All derived FI metrics
+ * @param {number|null} params.retirementAge        Target retirement age (user input)
+ * @param {number}      params.annualSavings
+ * @param {number}      params.annualReturnPct
+ * @param {number}      params.cpfPersons            1 = single, 2 = couple
+ * @param {number}      params.swrPct               Safe withdrawal rate % (default 4)
  */
 export function computeFIMetrics({
   investablePortfolio,
@@ -123,14 +125,16 @@ export function computeFIMetrics({
   retirementAge = null,
   annualSavings = 0,
   annualReturnPct = 6,
-  cpfPersons = 1,           // 1 = single, 2 = couple (doubles CPF LIFE payout)
+  cpfPersons = 1,
+  swrPct = 4,
 }) {
-  // ── Current passive income (4% SWR on investable pool) ──────────────────
-  const currentPassiveMonthly = (investablePortfolio * 0.04) / 12;
-  const currentPassiveAnnual  = investablePortfolio * 0.04;
+  const swr = swrPct / 100;
 
-  // Auto-estimate CPF LIFE payout based on age (CPF LIFE kicks in at 65)
-  // Multiply by cpfPersons so couples get 2× the payout
+  // ── Current passive income (SWR on investable pool) ──────────────────────
+  const currentPassiveMonthly = (investablePortfolio * swr) / 12;
+  const currentPassiveAnnual  = investablePortfolio * swr;
+
+  // Auto-estimate CPF LIFE payout based on age (kicks in at 65)
   const cpfLifePayout = estimateCpfLifePayout(currentAge) * (cpfPersons ?? 1);
 
   // If no target set yet, return partial metrics
@@ -141,14 +145,15 @@ export function computeFIMetrics({
       currentPassiveAnnual,
       targetMonthlyIncome: null,
       cpfLifePayout,
+      swrPct,
       ready: false,
     };
   }
 
   const annualContribution = annualSavings ?? 0;
 
-  // ── FI Target portfolio (25× annual expenses = target × 12 / 4%) ────────
-  const targetPortfolioFull = targetMonthlyIncome * 12 / 0.04; // without CPF
+  // ── FI Target portfolio (annual income / SWR) ────────────────────────────
+  const targetPortfolioFull = (targetMonthlyIncome * 12) / swr;
 
   // FI gap (monthly) — without CPF
   const fiGapMonthly = targetMonthlyIncome - currentPassiveMonthly;
@@ -160,28 +165,25 @@ export function computeFIMetrics({
     : yearsToFI(investablePortfolio, annualContribution, targetPortfolioFull, annualReturnPct);
   const fiYearA = yearsA != null ? CURRENT_YEAR + yearsA : null;
 
+  // Implied FI age based on annual savings (scenario A)
+  const impliedFIAge = (currentAge != null && yearsA != null)
+    ? currentAge + yearsA
+    : null;
+
   // ── Scenario B: with CPF LIFE (only applies from age 65) ─────────────────
-  // CPF LIFE reduces the required portfolio — but only counted once the user
-  // is projected to be ≥65. We simulate year-by-year to find when portfolio
-  // crosses the "age-aware" target line.
   let yearsB = null;
   let fiYearB = null;
   let alreadyFIWithCPF = false;
 
   if (cpfLifePayout > 0 && currentAge != null) {
-    // Check if already FI considering CPF is already active (age ≥ 65)
     if (currentAge >= CPF_PAYOUT_AGE) {
       const effectiveNeed = Math.max(0, targetMonthlyIncome - cpfLifePayout);
-      const targetWithCPF = (effectiveNeed * 12) / 0.04;
+      const targetWithCPF = (effectiveNeed * 12) / swr;
       alreadyFIWithCPF = investablePortfolio >= targetWithCPF;
-      if (alreadyFIWithCPF) {
-        yearsB = 0;
-        fiYearB = CURRENT_YEAR;
-      }
+      if (alreadyFIWithCPF) { yearsB = 0; fiYearB = CURRENT_YEAR; }
     }
 
     if (!alreadyFIWithCPF && yearsB === null) {
-      // Year-by-year simulation where CPF kicks in at 65
       const r = annualReturnPct / 100;
       let portfolio = investablePortfolio;
       for (let y = 1; y <= 60; y++) {
@@ -191,32 +193,34 @@ export function computeFIMetrics({
         const effectiveNeed = cpfActive
           ? Math.max(0, targetMonthlyIncome - cpfLifePayout)
           : targetMonthlyIncome;
-        const targetAtYear = (effectiveNeed * 12) / 0.04;
-        if (portfolio >= targetAtYear) {
-          yearsB = y;
-          fiYearB = CURRENT_YEAR + y;
-          break;
-        }
+        const targetAtYear = (effectiveNeed * 12) / swr;
+        if (portfolio >= targetAtYear) { yearsB = y; fiYearB = CURRENT_YEAR + y; break; }
       }
     }
   } else {
-    // No CPF or unknown age — scenario B same as A
     yearsB = yearsA;
     fiYearB = fiYearA;
     alreadyFIWithCPF = alreadyFI;
   }
 
-  // Effective need with CPF active (for display)
+  // Effective need with CPF (for display)
   const effectiveMonthlyNeedWithCPF = Math.max(0, targetMonthlyIncome - cpfLifePayout);
-  const targetPortfolioWithCPF = (effectiveMonthlyNeedWithCPF * 12) / 0.04;
+  const targetPortfolioWithCPF = (effectiveMonthlyNeedWithCPF * 12) / swr;
 
   // ── CPF LIFE impact ──────────────────────────────────────────────────────
   const cpfImpactYears = (yearsA != null && yearsB != null) ? yearsA - yearsB : null;
 
-  // ── Years to retirement age (optional) ──────────────────────────────────
-  const yearsToRetirement = (currentAge && retirementAge)
-    ? Math.max(0, retirementAge - currentAge)
-    : null;
+  // ── Required savings to reach FI by target retirement age ───────────────
+  let requiredAnnualSavingsForAge = null;
+  if (retirementAge != null && currentAge != null && retirementAge > currentAge) {
+    const n = retirementAge - currentAge;
+    requiredAnnualSavingsForAge = requiredAnnualSavings(
+      investablePortfolio, n, targetPortfolioFull, annualReturnPct
+    );
+    if (requiredAnnualSavingsForAge != null) {
+      requiredAnnualSavingsForAge = Math.max(0, Math.round(requiredAnnualSavingsForAge));
+    }
+  }
 
   // ── Portfolio progress % ─────────────────────────────────────────────────
   const progressPct = targetPortfolioFull > 0
@@ -234,6 +238,7 @@ export function computeFIMetrics({
     cpfLifePayout,
     currentAge,
     annualReturnPct,
+    swrPct,
     maxYears: 40,
   });
 
@@ -244,12 +249,14 @@ export function computeFIMetrics({
     currentPassiveAnnual,
     targetMonthlyIncome,
     cpfLifePayout,
+    swrPct,
     fiGapMonthly,
     alreadyFI,
     // Scenario A — without CPF
     targetPortfolioFull,
     yearsWithoutCPF: yearsA,
     fiYearWithoutCPF: fiYearA,
+    impliedFIAge,
     progressPct,
     // Scenario B — with CPF LIFE from age 65
     effectiveMonthlyNeedWithCPF,
@@ -258,9 +265,10 @@ export function computeFIMetrics({
     fiYearWithCPF: fiYearB,
     alreadyFIWithCPF,
     progressPctWithCPF,
+    // Linked inputs inference
+    requiredAnnualSavingsForAge,
     // Summary
     cpfImpactYears,
-    yearsToRetirement,
     annualReturnPct,
     annualSavings: annualSavings ?? 0,
     cpfPersons: cpfPersons ?? 1,

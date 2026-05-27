@@ -28,12 +28,18 @@ function migrate_1_to_2(state) {
   const categories = { ...state.net_worth.categories };
   const order      = [...(state.net_worth.category_order ?? [])];
 
-  // Patch in crypto if not already present
+  // Ensure portfolio-fed categories have the correct source field
+  // (users who created state before source was added may be missing it)
   if (!categories.crypto) {
     categories.crypto = { label: 'Crypto', value: 0, investable: true, source: 'portfolio' };
   } else {
-    // Ensure source is set correctly even if category exists without it
     categories.crypto = { ...categories.crypto, source: 'portfolio' };
+  }
+  if (categories.sgx_equities) {
+    categories.sgx_equities = { ...categories.sgx_equities, source: 'portfolio' };
+  }
+  if (categories.us_equities) {
+    categories.us_equities = { ...categories.us_equities, source: 'portfolio' };
   }
 
   // Insert 'crypto' into order after 'us_equities' (or at front if not found)
@@ -175,6 +181,7 @@ export function buildV1State() {
       assumed_annual_return_pct:  6,
       annual_savings_sgd:         36000,
       cpf_persons:                1,
+      swr_pct:                    4,
     },
   };
 }

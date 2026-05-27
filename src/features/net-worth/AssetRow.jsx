@@ -5,7 +5,7 @@ import useStore from '../../store/useStore';
 import Toggle from '../../components/ui/Toggle';
 import EditableNumber from '../../components/ui/EditableNumber';
 
-const PROTECTED = ['cash_savings', 'sgx_equities', 'us_equities', 'cpf', 'property', 'other'];
+const PROTECTED = ['cash_savings', 'sgx_equities', 'us_equities', 'crypto', 'cpf', 'property', 'other'];
 
 
 export default function AssetRow({ categoryKey }) {
@@ -37,8 +37,12 @@ export default function AssetRow({ categoryKey }) {
   };
 
   if (!category) return null;
-  const isPortfolioFed = category.source === 'portfolio';
-  const isProtected    = PROTECTED.includes(categoryKey);
+
+  // Portfolio-fed: check both the stored source flag AND hard-coded keys so that
+  // existing localStorage users who predate the 'source' field stay protected.
+  const PORTFOLIO_KEYS  = ['sgx_equities', 'us_equities', 'crypto'];
+  const isPortfolioFed  = category.source === 'portfolio' || PORTFOLIO_KEYS.includes(categoryKey);
+  const isProtected     = PROTECTED.includes(categoryKey);
 
   function startLabelEdit() {
     setLabelDraft(category.label);
