@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import useStore, { selectors } from '../../store/useStore';
 import { formatSGD } from '../../lib/format';
 import Card from '../../components/ui/Card';
+import Toggle from '../../components/ui/Toggle';
 
 const COLORS = [
   '#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6',
@@ -95,36 +96,13 @@ export default function AssetAllocationChart() {
       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100',
   ].join(' ');
 
-  const groupBtnCls = [
-    'px-2.5 py-1 rounded text-xs font-medium transition-colors border',
-    grouped
-      ? 'bg-gray-700 text-white border-gray-700'
-      : 'text-gray-400 hover:text-gray-600 border-gray-200 hover:border-gray-300 bg-white',
-  ].join(' ');
-
   const toggleBar = (
-    <div className="flex items-center gap-2">
-      <div className="flex gap-1">
-        {VIEWS.map(({ id, label }) => (
-          <button
-            key={id}
-            className={tabCls(id)}
-            onClick={() => setView(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {/* Group toggle — only visible in "All" view */}
-      {view === 'all' && (
-        <button
-          className={groupBtnCls}
-          onClick={() => setGrouped((g) => !g)}
-          title="Collapse into Investable / Non-invest."
-        >
-          Group
+    <div className="flex gap-1">
+      {VIEWS.map(({ id, label }) => (
+        <button key={id} className={tabCls(id)} onClick={() => setView(id)}>
+          {label}
         </button>
-      )}
+      ))}
     </div>
   );
 
@@ -140,6 +118,19 @@ export default function AssetAllocationChart() {
 
   return (
     <Card title="Allocation" action={toggleBar}>
+      {/* Group-by-type toggle — only shown in All view */}
+      {view === 'all' && (
+        <div className="flex items-center gap-2 px-1 pb-1">
+          <Toggle
+            checked={grouped}
+            onChange={() => setGrouped((g) => !g)}
+            label="Group by investable type"
+          />
+          <span className="text-xs text-gray-500">
+            {grouped ? 'Grouped: Investable / Non-invest.' : 'Group by type'}
+          </span>
+        </div>
+      )}
       <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie
