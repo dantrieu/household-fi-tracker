@@ -1,4 +1,9 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url:   process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   const key = `hfit:${passphrase.trim().toLowerCase()}`;
-  const data = await kv.get(key);
+  const data = await redis.get(key);
 
   if (data == null) {
     return res.status(404).json({ error: 'No data found for this passphrase. Double-check your spelling.' });
