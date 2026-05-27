@@ -211,7 +211,7 @@ export default function SaveRestoreModal({ onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <h2 className="font-semibold text-gray-900 text-base">☁️ Cloud Save / Restore</h2>
+            <h2 className="font-semibold text-gray-900 text-base">💾 Save / Restore Data</h2>
             <p className="text-xs text-gray-400 mt-0.5">Optional — your data stays in your browser by default</p>
           </div>
           <button

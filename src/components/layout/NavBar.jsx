@@ -51,7 +51,7 @@ export default function NavBar() {
                          bg-green-600 text-white hover:bg-green-700
                          transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              ☁️ <span className="text-xs">Cloud Save</span>
+              💾 <span className="text-xs">Save / Load</span>
             </button>
           </div>
         </div>
