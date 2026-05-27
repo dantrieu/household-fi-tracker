@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useStore from '../store/useStore';
-import { saveToCloud, loadFromCloud } from '../lib/cloudSync';
+import { saveToCloud, loadFromCloud, deleteFromCloud } from '../lib/cloudSync';
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -51,6 +51,12 @@ function SaveTab() {
   const [status, setStatus]         = useState(null); // null | 'saving' | 'ok' | 'error'
   const [errorMsg, setErrorMsg]     = useState('');
 
+  // Delete state
+  const [deletePassphrase, setDeletePassphrase] = useState('');
+  const [deleteStatus, setDeleteStatus]         = useState(null);
+  const [deleteError, setDeleteError]           = useState('');
+  const [deleteConfirm, setDeleteConfirm]       = useState(false);
+
   async function handleSave() {
     if (passphrase.trim().length < 6) {
       setErrorMsg('Passphrase must be at least 6 characters.');
@@ -65,6 +71,26 @@ function SaveTab() {
     } catch (err) {
       setErrorMsg(err.message);
       setStatus('error');
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirm) { setDeleteConfirm(true); return; }
+    if (deletePassphrase.trim().length < 6) {
+      setDeleteError('Passphrase must be at least 6 characters.');
+      setDeleteStatus('error');
+      return;
+    }
+    setDeleteStatus('deleting');
+    setDeleteError('');
+    try {
+      await deleteFromCloud(deletePassphrase.trim());
+      setDeleteStatus('ok');
+      setDeleteConfirm(false);
+    } catch (err) {
+      setDeleteError(err.message);
+      setDeleteStatus('error');
+      setDeleteConfirm(false);
     }
   }
 
@@ -108,8 +134,48 @@ function SaveTab() {
                    disabled:bg-gray-200 disabled:text-gray-400
                    transition-colors"
       >
-        {status === 'saving' ? 'Saving…' : '☁️ Save to cloud'}
+        {status === 'saving' ? 'Saving…' : '💾 Save to cloud'}
       </button>
+
+      {/* ── Delete saved data ── */}
+      <div className="pt-3 border-t border-gray-100 space-y-3">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Delete cloud data</p>
+        <div className="space-y-1.5">
+          <PassphraseInput
+            value={deletePassphrase}
+            onChange={(v) => { setDeletePassphrase(v); setDeleteConfirm(false); }}
+            placeholder="Enter passphrase to delete"
+            disabled={deleteStatus === 'deleting'}
+          />
+        </div>
+
+        {deleteStatus === 'ok' && (
+          <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+            ✅ Cloud data deleted.
+          </div>
+        )}
+        {deleteStatus === 'error' && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            ❌ {deleteError}
+          </div>
+        )}
+        {deleteConfirm && deleteStatus !== 'deleting' && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            ⚠️ This permanently deletes your cloud data. Click again to confirm.
+          </div>
+        )}
+
+        <button
+          onClick={handleDelete}
+          disabled={deleteStatus === 'deleting' || !deletePassphrase.trim()}
+          className="w-full py-2 rounded-lg text-sm font-semibold
+                     border border-red-300 text-red-600 hover:bg-red-50
+                     disabled:border-gray-200 disabled:text-gray-400
+                     transition-colors"
+        >
+          {deleteStatus === 'deleting' ? 'Deleting…' : deleteConfirm ? '⚠️ Confirm delete' : '🗑️ Delete cloud data'}
+        </button>
+      </div>
     </div>
   );
 }

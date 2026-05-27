@@ -38,6 +38,27 @@ export async function saveToCloud(passphrase, state) {
 }
 
 /**
+ * Delete saved data from Vercel KV by passphrase.
+ * Throws if passphrase not found.
+ */
+export async function deleteFromCloud(passphrase) {
+  const res = await fetch('/api/delete-data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ passphrase }),
+  });
+
+  if (res.status === 404) {
+    throw new Error('No data found for this passphrase.');
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Delete failed (${res.status})`);
+  }
+}
+
+/**
  * Load previously saved state from Vercel KV.
  * Returns the raw payload object — caller is responsible for merging into store.
  */
