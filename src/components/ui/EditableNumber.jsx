@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { formatSGD, parseNumber } from '../../lib/format';
+import { NumericFormat } from 'react-number-format';
+import { formatSGD } from '../../lib/format';
 
 /**
- * Displays a formatted SGD value. Click → inline input → save on Enter/blur, cancel on Escape.
+ * Displays a formatted SGD value. Click → inline input with thousand separators →
+ * save on Enter/blur, cancel on Escape.
  *
  * Props:
  *   value       – number (raw SGD)
@@ -11,11 +13,10 @@ import { formatSGD, parseNumber } from '../../lib/format';
  *   className   – extra classes on the wrapper span
  */
 export default function EditableNumber({ value, onSave, readOnly = false, className = '' }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
-  const inputRef = useRef(null);
+  const [editing, setEditing]     = useState(false);
+  const [floatVal, setFloatVal]   = useState(value);
+  const inputRef                  = useRef(null);
 
-  // Focus input when entering edit mode
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.select();
@@ -24,36 +25,31 @@ export default function EditableNumber({ value, onSave, readOnly = false, classN
 
   function startEdit() {
     if (readOnly) return;
-    setDraft(value === 0 ? '' : String(value));
+    setFloatVal(value);
     setEditing(true);
   }
 
   function commit() {
-    const parsed = parseNumber(draft);
-    if (!isNaN(parsed) && parsed >= 0) {
-      onSave(parsed);
-    }
-    setEditing(false);
-  }
-
-  function cancel() {
+    const parsed = floatVal ?? 0;
+    if (!isNaN(parsed) && parsed >= 0) onSave(parsed);
     setEditing(false);
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter') commit();
-    if (e.key === 'Escape') cancel();
+    if (e.key === 'Enter')  commit();
+    if (e.key === 'Escape') setEditing(false);
   }
 
   if (editing) {
     return (
-      <input
-        ref={inputRef}
-        type="number"
-        min="0"
-        step="1"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+      <NumericFormat
+        getInputRef={inputRef}
+        value={floatVal === 0 ? '' : floatVal}
+        onValueChange={(vals) => setFloatVal(vals.floatValue ?? 0)}
+        thousandSeparator=","
+        prefix="S$"
+        placeholder="S$0"
+        allowNegative={false}
         onBlur={commit}
         onKeyDown={handleKeyDown}
         className="w-36 text-right tabular-nums border border-green-400 rounded px-2 py-0.5

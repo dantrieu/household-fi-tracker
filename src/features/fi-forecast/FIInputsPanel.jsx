@@ -1,3 +1,4 @@
+import { NumericFormat } from 'react-number-format';
 import useStore, { selectors } from '../../store/useStore';
 import { yearsToFI, requiredAnnualSavings } from '../../lib/fi';
 import Card from '../../components/ui/Card';
@@ -13,13 +14,35 @@ function InputRow({ label, hint, children }) {
 }
 
 function NumberInput({ value, onChange, placeholder, min = 0, max, step = 1, prefix, suffix }) {
+  const inputClass = [
+    'w-full border border-gray-300 rounded-md py-1.5 text-sm',
+    'focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
+    prefix ? 'pl-8' : 'pl-3',
+    suffix ? 'pr-8' : 'pr-3',
+  ].join(' ');
+
+  // Dollar inputs: use NumericFormat for thousand-separator display
+  if (prefix === 'S$') {
+    return (
+      <div className="relative">
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
+          S$
+        </span>
+        <NumericFormat
+          value={value ?? ''}
+          onValueChange={(vals) => onChange(vals.floatValue ?? null)}
+          thousandSeparator=","
+          allowNegative={false}
+          placeholder={placeholder}
+          className={inputClass}
+        />
+      </div>
+    );
+  }
+
+  // Non-dollar inputs (%, age): plain number input
   return (
     <div className="relative">
-      {prefix && (
-        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
-          {prefix}
-        </span>
-      )}
       <input
         type="number"
         min={min}
@@ -28,12 +51,7 @@ function NumberInput({ value, onChange, placeholder, min = 0, max, step = 1, pre
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
         placeholder={placeholder}
-        className={[
-          'w-full border border-gray-300 rounded-md py-1.5 text-sm',
-          'focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent',
-          prefix ? 'pl-8' : 'pl-3',
-          suffix ? 'pr-8' : 'pr-3',
-        ].join(' ')}
+        className={inputClass}
       />
       {suffix && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
