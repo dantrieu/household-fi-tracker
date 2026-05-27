@@ -35,22 +35,23 @@ export default function FIForecastPage() {
         <FIScenarioPanel />
       </div>
 
-      {/* ── 3. CPF LIFE estimate ─────────────────────────────────────────────
-           Separate income source — not portfolio-based, kicks in at 65.
-           Answers: "how much does CPF boost my retirement income?"
-           Placed before charts so the CPF line in chart 2 makes sense.      */}
-      <CPFLifePanel />
-
-      {/* ── 4. Portfolio value chart ──────────────────────────────────────────
+      {/* ── 3. Portfolio value chart ──────────────────────────────────────────
            Shows portfolio growing toward FI target.
            After retirement: contributions stop, drawdown begins — clearly
            visible as the growth slope changes (or portfolio declines).
            Answers: "how does my portfolio behave over time?"                 */}
       <PortfolioValueChart />
 
+      {/* ── 4. CPF LIFE estimate ─────────────────────────────────────────────
+           Separate income source — not portfolio-based, kicks in at 65.
+           Placed after portfolio chart (CPF has no impact on portfolio value)
+           and before passive income chart so the purple band at 65 makes sense.
+           Answers: "how much does CPF boost my retirement income?"           */}
+      <CPFLifePanel />
+
       {/* ── 5. Monthly passive income chart ──────────────────────────────────
            Shows passive income (portfolio × SWR / 12) growing over the years.
-           At age 65: CPF LIFE payout creates a visible step-up on the line.
+           At age 65: CPF LIFE payout creates a visible step-up (purple band).
            Target income shown as a horizontal line — income crosses it at FI.
            Answers: "when does my income reach what I need, and how does
                      CPF contribute from age 65?"                             */}
