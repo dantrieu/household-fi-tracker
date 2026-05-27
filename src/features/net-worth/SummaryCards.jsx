@@ -33,12 +33,12 @@ export default function SummaryCards() {
         tooltip="Sum of all asset categories"
       />
       <SummaryCard
-        label="Investable"
+        label="Total Investable NW"
         value={investable}
         tooltip="Assets flagged as investable — the pool used to generate passive income in FI Forecast"
       />
       <SummaryCard
-        label="Excl. CPF"
+        label="Total NW, Excl. CPF"
         value={exCpf}
         tooltip="Total minus CPF — shows liquid wealth excluding retirement savings"
       />
