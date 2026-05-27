@@ -75,5 +75,5 @@ export function buildDefaultCategories() {
 }
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 export const STORAGE_KEY = 'hfi-store';

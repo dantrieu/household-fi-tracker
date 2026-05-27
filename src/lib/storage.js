@@ -20,10 +20,49 @@ function migrate_0_to_1(_oldState) {
   return buildV1State();
 }
 
+/**
+ * v1 → v2: Add Crypto category to net worth (auto-fed from portfolio).
+ * Preserves all existing user data; only patches in the missing category.
+ */
+function migrate_1_to_2(state) {
+  const categories = { ...state.net_worth.categories };
+  const order      = [...(state.net_worth.category_order ?? [])];
+
+  // Patch in crypto if not already present
+  if (!categories.crypto) {
+    categories.crypto = { label: 'Crypto', value: 0, investable: true, source: 'portfolio' };
+  } else {
+    // Ensure source is set correctly even if category exists without it
+    categories.crypto = { ...categories.crypto, source: 'portfolio' };
+  }
+
+  // Insert 'crypto' into order after 'us_equities' (or at front if not found)
+  if (!order.includes('crypto')) {
+    const usIdx = order.indexOf('us_equities');
+    if (usIdx >= 0) order.splice(usIdx + 1, 0, 'crypto');
+    else order.unshift('crypto');
+  }
+
+  // Also patch fi_settings: rename monthly_savings_sgd → annual_savings_sgd if present
+  const fi = { ...state.fi_settings };
+  if (fi.monthly_savings_sgd != null && fi.annual_savings_sgd == null) {
+    fi.annual_savings_sgd = fi.monthly_savings_sgd * 12;
+    delete fi.monthly_savings_sgd;
+  }
+  if (fi.cpf_persons == null) fi.cpf_persons = 1;
+
+  return {
+    ...state,
+    schema_version: 2,
+    net_worth: { ...state.net_worth, categories, category_order: order },
+    fi_settings: fi,
+  };
+}
+
 // ─── Migration registry ───────────────────────────────────────────────────────
 const MIGRATIONS = {
   0: migrate_0_to_1,
-  // 1: migrate_1_to_2,  ← add future migrations here
+  1: migrate_1_to_2,
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────
