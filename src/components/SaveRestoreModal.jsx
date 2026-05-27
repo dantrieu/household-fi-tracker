@@ -200,13 +200,14 @@ export default function SaveRestoreModal({ onClose }) {
   const [tab, setTab] = useState('save');
 
   return (
-    /* Backdrop */
+    /* Backdrop — bottom sheet on mobile, centred modal on desktop */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* Panel */}
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl
+                      overflow-hidden max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
