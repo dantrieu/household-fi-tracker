@@ -354,6 +354,26 @@ const useStore = create(
           fi_settings: { ...state.fi_settings, [key]: value },
         }));
       },
+
+      // ── Cloud restore ────────────────────────────────────────────────────
+
+      /**
+       * Replace store data with payload loaded from cloud save.
+       * Only overwrites data fields — actions are untouched.
+       * @param {object} payload  The object returned by loadFromCloud()
+       */
+      restoreFromCloud(payload) {
+        set(() => ({
+          last_modified: new Date().toISOString(),
+          net_worth:   payload.net_worth   ?? buildV1State().net_worth,
+          fi_settings: payload.fi_settings ?? buildV1State().fi_settings,
+          snapshots:   payload.snapshots   ?? [],
+          portfolio: {
+            ...buildV1State().portfolio,
+            positions: payload.portfolio?.positions ?? [],
+          },
+        }));
+      },
     }),
 
     // ── Zustand persist config ─────────────────────────────────────────────
