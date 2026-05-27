@@ -274,41 +274,39 @@ const useStore = create(
 
       /**
        * Save current net worth state as a snapshot.
-       * @param {number} year   e.g. 2024
+       * @param {number} year
        * @param {number} month  1-12
-       * @param {string} [label]
+       * @param {string} [remark]  optional free-text note
        */
-      saveSnapshot(year, month, label) {
+      saveSnapshot(year, month, remark) {
         const state = get();
-        const cats = state.net_worth.categories;
+        const cats  = state.net_worth.categories;
 
-        const total = selectors.totalNetWorth(state);
+        const total     = selectors.totalNetWorth(state);
         const investable = selectors.investableNetWorth(state);
-        const exCpf = selectors.netWorthExCpf(state);
+        const exCpf     = selectors.netWorthExCpf(state);
 
-        // Build flat category values map
         const categoryValues = {};
-        for (const key of Object.keys(cats)) {
-          categoryValues[key] = cats[key].value;
-        }
+        for (const key of Object.keys(cats)) categoryValues[key] = cats[key].value;
 
+        const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const snapshot = {
-          id: String(Date.now()),
-          year: Number(year),
-          month: Number(month),
-          label: label || `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`,
-          saved_at: new Date().toISOString(),
+          id:         String(Date.now()),
+          year:       Number(year),
+          month:      Number(month),
+          label:      `${MNAMES[Number(month)-1]} ${year}`, // auto, kept for export compat
+          remark:     remark?.trim() || '',
+          saved_at:   new Date().toISOString(),
           totals: {
-            total_net_worth: total,
+            total_net_worth:      total,
             investable_net_worth: investable,
-            net_worth_ex_cpf: exCpf,
+            net_worth_ex_cpf:     exCpf,
           },
           categories: categoryValues,
         };
 
         set((state) => ({
           last_modified: new Date().toISOString(),
-          // Replace snapshot with same year+month; append new one
           snapshots: [
             ...state.snapshots.filter((s) => !(s.year === Number(year) && (s.month ?? 12) === Number(month))),
             snapshot,
@@ -317,20 +315,22 @@ const useStore = create(
       },
 
       /**
-       * Save a manually-entered snapshot with custom totals (for past months/years).
+       * Save a manually-entered snapshot with custom totals.
        * @param {number} year
        * @param {number} month  1-12
-       * @param {string} label
+       * @param {string} [remark]
        * @param {{ total: number, investable: number }} totals
        */
-      saveManualSnapshot(year, month, label, totals) {
+      saveManualSnapshot(year, month, remark, totals) {
+        const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const snapshot = {
-          id: String(Date.now()),
-          year: Number(year),
-          month: Number(month),
-          label: label || `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`,
+          id:       String(Date.now()),
+          year:     Number(year),
+          month:    Number(month),
+          label:    `${MNAMES[Number(month)-1]} ${year}`,
+          remark:   remark?.trim() || '',
           saved_at: new Date().toISOString(),
-          manual: true,
+          manual:   true,
           totals: {
             total_net_worth:      totals.total     ?? 0,
             investable_net_worth: totals.investable ?? 0,
@@ -347,16 +347,21 @@ const useStore = create(
         }));
       },
 
-      /** Update snapshot label, year, month, and/or totals. */
-      updateSnapshot(id, { label, year, month, totals }) {
+      /** Update snapshot year, month, remark, and/or totals. */
+      updateSnapshot(id, { year, month, remark, totals }) {
+        const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         set((state) => ({
           last_modified: new Date().toISOString(),
-          snapshots: state.snapshots.map((s) =>
-            s.id !== id ? s : {
+          snapshots: state.snapshots.map((s) => {
+            if (s.id !== id) return s;
+            const newYear  = year  != null ? Number(year)  : s.year;
+            const newMonth = month != null ? Number(month) : (s.month ?? 12);
+            return {
               ...s,
-              ...(label  != null ? { label }              : {}),
-              ...(year   != null ? { year: Number(year) } : {}),
-              ...(month  != null ? { month: Number(month) } : {}),
+              year:   newYear,
+              month:  newMonth,
+              label:  `${MNAMES[newMonth - 1]} ${newYear}`, // keep in sync
+              ...(remark != null ? { remark: remark.trim() } : {}),
               ...(totals != null ? {
                 totals: {
                   total_net_worth:      totals.total      ?? s.totals.total_net_worth,
@@ -364,8 +369,8 @@ const useStore = create(
                   net_worth_ex_cpf:     s.totals.net_worth_ex_cpf ?? 0,
                 },
               } : {}),
-            }
-          ),
+            };
+          }),
         }));
       },
 
@@ -520,15 +525,14 @@ export const selectors = {
    * Delta is always computed year-over-year regardless of display order.
    */
   snapshotsWithDelta(state) {
-    // Build a chronological index (year then month) for delta lookup
-    const byDate = [...state.snapshots].sort((a, b) => {
+    // Always sort chronologically (oldest → newest); UI layer can reverse for display
+    const sorted = [...state.snapshots].sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return (a.month ?? 12) - (b.month ?? 12);
     });
 
-    return state.snapshots.map((snap) => {
-      const idxInYear = byDate.findIndex((s) => s.id === snap.id);
-      const prior = idxInYear > 0 ? byDate[idxInYear - 1] : null;
+    return sorted.map((snap, idx) => {
+      const prior = idx > 0 ? sorted[idx - 1] : null;
       const delta = prior
         ? snap.totals.total_net_worth - prior.totals.total_net_worth
         : null;

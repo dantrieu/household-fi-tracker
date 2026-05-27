@@ -8,11 +8,7 @@ import { exportJSON } from '../../../lib/storage';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function autoLabel(month, year) {
-  return `${MONTHS[Number(month) - 1]} ${year}`;
-}
-
-// ── Small SGD input ───────────────────────────────────────────────────────────
+// ── Shared sub-components ─────────────────────────────────────────────────────
 function SgdInput({ value, onChange, placeholder }) {
   return (
     <div className="relative">
@@ -32,15 +28,13 @@ function SgdInput({ value, onChange, placeholder }) {
   );
 }
 
-// ── Month select ──────────────────────────────────────────────────────────────
 function MonthSelect({ value, onChange }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm
-                 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                 bg-white"
+      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white
+                 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
     >
       {MONTHS.map((m, i) => (
         <option key={i + 1} value={i + 1}>{m}</option>
@@ -51,55 +45,45 @@ function MonthSelect({ value, onChange }) {
 
 // ── Save current snapshot form ────────────────────────────────────────────────
 function SaveCurrentForm() {
-  const now         = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1; // 1-12
+  const now          = new Date();
+  const currentYear  = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
-  const [year, setYear]   = useState(String(currentYear));
-  const [month, setMonth] = useState(currentMonth);
-  const [label, setLabel] = useState(autoLabel(currentMonth, currentYear));
-  const [saved, setSaved] = useState(false);
+  const [year, setYear]     = useState(String(currentYear));
+  const [month, setMonth]   = useState(currentMonth);
+  const [remark, setRemark] = useState('');
+  const [saved, setSaved]   = useState(false);
   const saveSnapshot = useStore((s) => s.saveSnapshot);
-
-  function handleYearChange(e) {
-    const y = e.target.value;
-    setYear(y);
-    setLabel(autoLabel(month, y));
-  }
-
-  function handleMonthChange(m) {
-    setMonth(m);
-    setLabel(autoLabel(m, year));
-  }
 
   function handleSave() {
     const y = parseInt(year, 10);
     if (isNaN(y) || y < 2000 || y > 2100) return;
-    saveSnapshot(y, month, label);
+    saveSnapshot(y, month, remark);
     setSaved(true);
+    setRemark('');
     setTimeout(() => setSaved(false), 2000);
   }
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <div className="flex flex-col gap-1 w-20">
+      <div className="flex flex-col gap-1 w-[4.5rem]">
         <label className="text-xs font-medium text-gray-500">Month</label>
-        <MonthSelect value={month} onChange={handleMonthChange} />
+        <MonthSelect value={month} onChange={setMonth} />
       </div>
-      <div className="flex flex-col gap-1 w-24">
+      <div className="flex flex-col gap-1 w-20">
         <label className="text-xs font-medium text-gray-500">Year</label>
         <input
           type="number" min="2000" max="2100"
-          value={year} onChange={handleYearChange}
+          value={year} onChange={(e) => setYear(e.target.value)}
           className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
       </div>
       <div className="flex flex-col gap-1 flex-1 min-w-36">
-        <label className="text-xs font-medium text-gray-500">Label</label>
+        <label className="text-xs font-medium text-gray-500">Remark <span className="text-gray-400 font-normal">(optional)</span></label>
         <input
-          type="text" value={label} onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g. Jan 2025"
+          type="text" value={remark} onChange={(e) => setRemark(e.target.value)}
+          placeholder="e.g. Bonus month"
           className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
@@ -126,32 +110,21 @@ function ManualEntryForm() {
 
   const [year, setYear]         = useState(String(currentYear - 1));
   const [month, setMonth]       = useState(12);
-  const [label, setLabel]       = useState(autoLabel(12, currentYear - 1));
+  const [remark, setRemark]     = useState('');
   const [total, setTotal]       = useState(null);
   const [investable, setInvest] = useState(null);
   const [saved, setSaved]       = useState(false);
   const [error, setError]       = useState('');
-
-  function handleYearChange(e) {
-    const y = e.target.value;
-    setYear(y);
-    setLabel(autoLabel(month, y));
-  }
-
-  function handleMonthChange(m) {
-    setMonth(m);
-    setLabel(autoLabel(m, year));
-  }
 
   function handleSave() {
     const y = parseInt(year, 10);
     if (isNaN(y) || y < 2000 || y > 2100) { setError('Enter a valid year (2000–2100)'); return; }
     if (!total) { setError('Total Net Worth is required'); return; }
     setError('');
-    saveManualSnapshot(y, month, label, { total, investable });
+    saveManualSnapshot(y, month, remark, { total, investable });
     setSaved(true);
+    setRemark(''); setTotal(null); setInvest(null);
     setTimeout(() => setSaved(false), 2500);
-    setTotal(null); setInvest(null);
   }
 
   return (
@@ -164,21 +137,13 @@ function ManualEntryForm() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">Month</label>
-          <MonthSelect value={month} onChange={handleMonthChange} />
+          <MonthSelect value={month} onChange={setMonth} />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">Year</label>
           <input
             type="number" min="2000" max="2100"
-            value={year} onChange={handleYearChange}
-            className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-        <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
-          <label className="text-xs font-medium text-gray-500">Label</label>
-          <input
-            type="text" value={label} onChange={(e) => setLabel(e.target.value)}
+            value={year} onChange={(e) => setYear(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
@@ -190,6 +155,15 @@ function ManualEntryForm() {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">Investable</label>
           <SgdInput value={investable} onChange={setInvest} placeholder="optional" />
+        </div>
+        <div className="flex flex-col gap-1 col-span-2 sm:col-span-4">
+          <label className="text-xs font-medium text-gray-500">Remark <span className="text-gray-400 font-normal">(optional)</span></label>
+          <input
+            type="text" value={remark} onChange={(e) => setRemark(e.target.value)}
+            placeholder="e.g. Year-end, received bonus…"
+            className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
         </div>
       </div>
 
@@ -213,7 +187,7 @@ function ManualEntryForm() {
 // ── Main section ──────────────────────────────────────────────────────────────
 export default function SnapshotSection() {
   const state = useStore();
-  const [mode, setMode] = useState('current'); // 'current' | 'manual'
+  const [mode, setMode] = useState('current');
 
   const tabCls = (id) => [
     'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
@@ -236,27 +210,19 @@ export default function SnapshotSection() {
       }
       padding="none"
     >
-      {/* ── Add snapshot area ── */}
       <div className="px-5 py-4 border-b border-gray-100 space-y-3">
         <div className="flex gap-1.5">
-          <button className={tabCls('current')} onClick={() => setMode('current')}>
-            Save current
-          </button>
-          <button className={tabCls('manual')} onClick={() => setMode('manual')}>
-            + Add past data
-          </button>
+          <button className={tabCls('current')} onClick={() => setMode('current')}>Save current</button>
+          <button className={tabCls('manual')}  onClick={() => setMode('manual')}>+ Add past data</button>
         </div>
-
         {mode === 'current' ? <SaveCurrentForm /> : <ManualEntryForm />}
       </div>
 
-      {/* Trend chart */}
       <div className="px-5 pt-2 pb-4 border-b border-gray-100">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Net Worth Trend</p>
         <SnapshotTrendChart />
       </div>
 
-      {/* History table */}
       <div className="px-5 py-4">
         <SnapshotTable />
       </div>
