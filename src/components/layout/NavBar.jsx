@@ -48,8 +48,7 @@ export default function NavBar() {
               onClick={() => setShowCloud(true)}
               title="Cloud Save / Restore (optional)"
               className="ml-2 px-3 py-1.5 rounded-md text-sm font-medium
-                         border border-gray-300 bg-white text-gray-700
-                         hover:border-green-400 hover:text-green-700 hover:bg-green-50
+                         bg-green-600 text-white hover:bg-green-700
                          transition-colors flex items-center gap-1.5 shadow-sm"
             >
               ☁️ <span className="text-xs">Cloud Save</span>
