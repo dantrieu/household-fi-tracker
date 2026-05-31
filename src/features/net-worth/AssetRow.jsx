@@ -31,9 +31,10 @@ export default function AssetRow({ categoryKey }) {
 
   if (!category) return null;
 
-  const PORTFOLIO_KEYS = ['sgx_equities', 'us_equities', 'crypto'];
-  const isPortfolioFed = category.source === 'portfolio' || PORTFOLIO_KEYS.includes(categoryKey);
-  const isProtected    = PROTECTED.includes(categoryKey);
+  const PORTFOLIO_KEYS  = ['sgx_equities', 'us_equities', 'crypto'];
+  const isPortfolioFed  = category.source === 'portfolio' || PORTFOLIO_KEYS.includes(categoryKey);
+  const isLabelLocked   = isPortfolioFed || categoryKey === 'cpf'; // CPF label is fixed
+  const isProtected     = PROTECTED.includes(categoryKey);
 
   function startLabelEdit() { setLabelDraft(category.label); setEditingLabel(true); }
   function commitLabel() {
@@ -78,7 +79,7 @@ export default function AssetRow({ categoryKey }) {
         >
           auto-sync
         </span>
-      ) : (
+      ) : isLabelLocked ? null : (
         <button
           onClick={startLabelEdit}
           aria-label={`Rename ${category.label}`}
