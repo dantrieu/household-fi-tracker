@@ -2,10 +2,20 @@ import useStore, { selectors } from '../../store/useStore';
 import PositionRow from './PositionRow';
 import Card from '../../components/ui/Card';
 
+const EXCHANGE_ORDER = { SGX: 0, US: 1, CRYPTO: 2 };
+
 export default function PositionsTable() {
-  const state     = useStore();
-  const positions = selectors.enrichedPositions(state);
-  const totalSGD  = positions.reduce((s, p) => s + (p.valueSGD ?? 0), 0);
+  const state = useStore();
+  const raw   = selectors.enrichedPositions(state);
+
+  // Sort: exchange order (SGX → US → Crypto) then ticker A→Z
+  const positions = [...raw].sort((a, b) => {
+    const exDiff = (EXCHANGE_ORDER[a.exchange] ?? 9) - (EXCHANGE_ORDER[b.exchange] ?? 9);
+    if (exDiff !== 0) return exDiff;
+    return a.ticker.localeCompare(b.ticker);
+  });
+
+  const totalSGD = positions.reduce((s, p) => s + (p.valueSGD ?? 0), 0);
 
   if (positions.length === 0) {
     return (

@@ -18,6 +18,21 @@ const POSITION_COLORS = [
   '#14b8a6','#a855f7','#84cc16','#f43f5e',
 ];
 
+// % label rendered inside each slice (mirrors AssetAllocationChart)
+const RADIAN = Math.PI / 180;
+function PctLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
+  if (percent < 0.05) return null;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central"
+          fontSize={11} fontWeight={600}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
+
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
@@ -113,6 +128,8 @@ export default function PortfolioAllocationChart() {
             innerRadius={55}
             outerRadius={90}
             paddingAngle={2}
+            labelLine={false}
+            label={PctLabel}
           >
             {data.map((_, i) => (
               <Cell key={i} fill={colors[i]} />

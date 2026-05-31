@@ -105,7 +105,7 @@ export default function PositionRow({ position, totalSGD }) {
     <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm p-3 mb-2">
       {/* Header row: pencil + ticker + badge + remove */}
       <div className="flex items-start gap-2">
-        <button onClick={startEdit} title="Edit" className="text-gray-300 hover:text-green-600 text-sm mt-0.5">✏</button>
+        <button onClick={startEdit} title="Edit" className="text-[11px] opacity-25 hover:opacity-70 leading-none transition-opacity mt-0.5">✏️</button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-gray-900">{ticker}</span>
@@ -203,8 +203,8 @@ export default function PositionRow({ position, totalSGD }) {
         <div className="flex items-center gap-1.5">
           <button onClick={startEdit} aria-label={`Edit ${ticker}`}
             title="Edit shares & cost"
-            className="text-gray-300 hover:text-green-600 text-sm transition-colors">
-            ✏
+            className="text-[11px] opacity-25 hover:opacity-70 leading-none transition-opacity">
+            ✏️
           </button>
           <button onClick={() => removePosition(id)} aria-label={`Remove ${ticker}`}
             className="text-gray-200 hover:text-red-400 text-xs transition-colors opacity-0 group-hover:opacity-100">
