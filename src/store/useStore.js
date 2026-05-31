@@ -533,14 +533,16 @@ export const selectors = {
 
     return sorted.map((snap, idx) => {
       const prior = idx > 0 ? sorted[idx - 1] : null;
-      const delta = prior
-        ? snap.totals.total_net_worth - prior.totals.total_net_worth
-        : null;
-      const deltaPct =
-        delta != null && prior.totals.total_net_worth !== 0
-          ? delta / prior.totals.total_net_worth
-          : null;
-      return { ...snap, delta, deltaPct };
+
+      const delta    = prior ? snap.totals.total_net_worth      - prior.totals.total_net_worth      : null;
+      const deltaPct = delta != null && prior.totals.total_net_worth !== 0
+        ? delta / prior.totals.total_net_worth : null;
+
+      const invDelta    = prior ? snap.totals.investable_net_worth - prior.totals.investable_net_worth : null;
+      const invDeltaPct = invDelta != null && (prior?.totals.investable_net_worth ?? 0) !== 0
+        ? invDelta / prior.totals.investable_net_worth : null;
+
+      return { ...snap, delta, deltaPct, invDelta, invDeltaPct };
     });
   },
 };

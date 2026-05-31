@@ -29,6 +29,7 @@ function SgdDraftInput({ value, onChange, placeholder }) {
   );
 }
 
+// ── Saved snapshot row ────────────────────────────────────────────────────────
 function SnapshotRow({ snap }) {
   const deleteSnapshot = useStore((s) => s.deleteSnapshot);
   const updateSnapshot = useStore((s) => s.updateSnapshot);
@@ -71,67 +72,46 @@ function SnapshotRow({ snap }) {
   if (editing) {
     return (
       <tr className="bg-green-50">
-        <td colSpan={5} className="py-2.5 px-3">
+        <td colSpan={6} className="py-2.5 px-3">
           <div className="flex flex-wrap gap-2 items-end">
-            {/* Month */}
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-400 uppercase">Month</span>
-              <select
-                value={monthDraft}
-                onChange={(e) => setMonthDraft(Number(e.target.value))}
+              <select value={monthDraft} onChange={(e) => setMonthDraft(Number(e.target.value))}
                 className="w-20 border border-green-400 rounded px-1.5 py-1 text-sm bg-white
-                           focus:outline-none focus:ring-1 focus:ring-green-500"
-              >
-                {MONTHS.map((m, i) => (
-                  <option key={i + 1} value={i + 1}>{m}</option>
-                ))}
+                           focus:outline-none focus:ring-1 focus:ring-green-500">
+                {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
               </select>
             </div>
-            {/* Year */}
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-400 uppercase">Year</span>
-              <input
-                type="number" value={yearDraft}
+              <input type="number" value={yearDraft}
                 onChange={(e) => setYearDraft(e.target.value)} onKeyDown={handleKey}
                 className="w-16 border border-green-400 rounded px-2 py-1 text-sm
-                           focus:outline-none focus:ring-1 focus:ring-green-500"
-              />
+                           focus:outline-none focus:ring-1 focus:ring-green-500" />
             </div>
-            {/* Total NW */}
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-400 uppercase">Total NW</span>
               <SgdDraftInput value={totalDraft} onChange={setTotalDraft} placeholder="Total" />
             </div>
-            {/* Investable */}
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-400 uppercase">Investable</span>
               <SgdDraftInput value={investDraft} onChange={setInvestDraft} placeholder="Investable" />
             </div>
-            {/* Remark */}
             <div className="flex flex-col gap-0.5 flex-1 min-w-32">
               <span className="text-[10px] text-gray-400 uppercase">Remark</span>
-              <input
-                autoFocus
-                value={remarkDraft}
-                onChange={(e) => setRemarkDraft(e.target.value)}
-                onKeyDown={handleKey}
+              <input autoFocus value={remarkDraft}
+                onChange={(e) => setRemarkDraft(e.target.value)} onKeyDown={handleKey}
                 placeholder="optional note"
                 className="w-full border border-green-400 rounded px-2 py-1 text-sm
-                           focus:outline-none focus:ring-1 focus:ring-green-500"
-              />
+                           focus:outline-none focus:ring-1 focus:ring-green-500" />
             </div>
-            {/* Actions */}
             <div className="flex gap-1.5 pb-0.5">
-              <button
-                onClick={commitEdit}
-                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors"
-              >
+              <button onClick={commitEdit}
+                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors">
                 Save
               </button>
-              <button
-                onClick={() => setEditing(false)}
-                className="px-3 py-1.5 border border-gray-200 text-gray-500 text-xs rounded hover:border-gray-300 transition-colors"
-              >
+              <button onClick={() => setEditing(false)}
+                className="px-3 py-1.5 border border-gray-200 text-gray-500 text-xs rounded hover:border-gray-300 transition-colors">
                 Cancel
               </button>
             </div>
@@ -143,39 +123,35 @@ function SnapshotRow({ snap }) {
 
   return (
     <tr className="hover:bg-gray-50 transition-colors group">
-      {/* Date + remark */}
       <td className="py-3 pr-4 w-40 min-w-[8rem]">
         <button onClick={startEdit} className="text-left w-full" title="Click to edit">
-          <span className="font-semibold text-gray-800 text-sm hover:text-green-700 hover:underline decoration-dashed underline-offset-2 transition-colors">
+          <span className="font-semibold text-gray-800 text-sm hover:text-green-700
+                           hover:underline decoration-dashed underline-offset-2 transition-colors">
             {snapDate(snap)}
           </span>
           {snap.remark && (
-            <span
-              className="block text-xs text-gray-400 leading-tight mt-0.5 truncate max-w-[18rem]"
-              title={snap.remark}
-            >
-              {snap.remark}
-            </span>
+            <span className="block text-xs text-gray-400 leading-tight mt-0.5 truncate max-w-[18rem]"
+              title={snap.remark}>{snap.remark}</span>
           )}
         </button>
       </td>
-
       <td className="py-3 pr-4 w-32 text-right tabular-nums font-medium text-gray-900 text-sm">
         {formatSGD(snap.totals.total_net_worth)}
       </td>
       <td className="py-3 pr-4 w-32 text-right tabular-nums text-gray-600 text-sm">
         {formatSGD(snap.totals.investable_net_worth)}
       </td>
-      <td className="py-3 pr-4 w-40 text-right">
+      <td className="py-3 pr-3 w-36 text-right">
         <DeltaBadge delta={snap.delta} deltaPct={snap.deltaPct} />
       </td>
+      <td className="py-3 pr-4 w-36 text-right">
+        <DeltaBadge delta={snap.invDelta} deltaPct={snap.invDeltaPct} />
+      </td>
       <td className="py-3 pr-2 w-6 text-right">
-        <button
-          onClick={() => deleteSnapshot(snap.id)}
+        <button onClick={() => deleteSnapshot(snap.id)}
           aria-label={`Delete ${snapDate(snap)} snapshot`}
           className="text-gray-300 hover:text-red-400 transition-colors text-xs px-1
-                     opacity-0 group-hover:opacity-100"
-        >
+                     opacity-0 group-hover:opacity-100">
           ✕
         </button>
       </td>
@@ -183,21 +159,56 @@ function SnapshotRow({ snap }) {
   );
 }
 
+// ── Live (unsaved) row ────────────────────────────────────────────────────────
+function LiveRow({ liveTotal, liveInv, priorSnap }) {
+  const nwDelta  = priorSnap ? liveTotal - priorSnap.totals.total_net_worth      : null;
+  const nwPct    = nwDelta != null && priorSnap.totals.total_net_worth !== 0
+    ? nwDelta / priorSnap.totals.total_net_worth : null;
+  const invDelta = priorSnap ? liveInv - priorSnap.totals.investable_net_worth   : null;
+  const invPct   = invDelta != null && (priorSnap?.totals.investable_net_worth ?? 0) !== 0
+    ? invDelta / priorSnap.totals.investable_net_worth : null;
+
+  return (
+    <tr className="bg-green-50 border-b border-green-100">
+      <td className="py-3 pr-4 w-40">
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-green-700 text-sm">Now</span>
+          <span className="text-[10px] bg-green-600 text-white rounded px-1.5 py-0.5 font-semibold leading-none">
+            LIVE
+          </span>
+        </div>
+      </td>
+      <td className="py-3 pr-4 w-32 text-right tabular-nums font-bold text-green-700 text-sm">
+        {formatSGD(liveTotal)}
+      </td>
+      <td className="py-3 pr-4 w-32 text-right tabular-nums text-green-600 text-sm font-medium">
+        {formatSGD(liveInv)}
+      </td>
+      <td className="py-3 pr-3 w-36 text-right">
+        <DeltaBadge delta={nwDelta} deltaPct={nwPct} />
+      </td>
+      <td className="py-3 pr-4 w-36 text-right">
+        <DeltaBadge delta={invDelta} deltaPct={invPct} />
+      </td>
+      <td className="py-3 pr-2 w-6" />
+    </tr>
+  );
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
 export default function SnapshotTable() {
-  const state = useStore();
-  // snapshotsWithDelta returns oldest→newest; toggle reverses for display
-  const rows = selectors.snapshotsWithDelta(state);
+  const state    = useStore();
+  const rows     = selectors.snapshotsWithDelta(state);   // oldest → newest
+  const liveTotal = selectors.totalNetWorth(state);
+  const liveInv   = selectors.investableNetWorth(state);
   const [newestFirst, setNewestFirst] = useState(true);
 
   const displayed = newestFirst ? [...rows].reverse() : rows;
 
-  if (rows.length === 0) {
-    return (
-      <p className="text-sm text-gray-400 text-center py-6">
-        No snapshots yet — save your first one above.
-      </p>
-    );
-  }
+  // "Prior" for the live row is always the most recent saved snapshot
+  const mostRecentSnap = rows.length > 0 ? rows[rows.length - 1] : null;
+
+  const thCls = 'py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right';
 
   return (
     <div className="overflow-x-auto">
@@ -210,20 +221,33 @@ export default function SnapshotTable() {
                 className="flex items-center gap-1 text-xs font-semibold text-gray-400
                            uppercase tracking-wide hover:text-gray-600 transition-colors"
               >
-                Date
-                <span className="text-gray-300">{newestFirst ? '↓' : '↑'}</span>
+                Date <span className="text-gray-300">{newestFirst ? '↓' : '↑'}</span>
               </button>
             </th>
-            <th className="py-2 pr-4 w-32 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Total NW</th>
-            <th className="py-2 pr-4 w-32 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Investable</th>
-            <th className="py-2 pr-4 w-40 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">vs Prior</th>
+            <th className={thCls}>Total NW</th>
+            <th className={thCls}>Investable</th>
+            <th className={thCls}>Total NW △</th>
+            <th className={thCls}>Investable △</th>
             <th className="py-2 w-6" />
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
-          {displayed.map((snap) => (
-            <SnapshotRow key={snap.id} snap={snap} />
-          ))}
+          {/* Live row always at top when newest-first, bottom when oldest-first */}
+          {newestFirst && (
+            <LiveRow liveTotal={liveTotal} liveInv={liveInv} priorSnap={mostRecentSnap} />
+          )}
+          {displayed.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="py-6 text-center text-sm text-gray-400">
+                No snapshots yet — save your first one above.
+              </td>
+            </tr>
+          ) : (
+            displayed.map((snap) => <SnapshotRow key={snap.id} snap={snap} />)
+          )}
+          {!newestFirst && (
+            <LiveRow liveTotal={liveTotal} liveInv={liveInv} priorSnap={mostRecentSnap} />
+          )}
         </tbody>
       </table>
     </div>

@@ -9,7 +9,14 @@ function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-sm space-y-1">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
+      <p className="font-semibold text-gray-700 mb-1">
+        {label}
+        {label === 'Live' && (
+          <span className="ml-1.5 text-[10px] bg-green-100 text-green-700 rounded px-1 py-0.5 font-semibold">
+            current
+          </span>
+        )}
+      </p>
       {payload.map((p) => (
         <div key={p.dataKey} className="flex items-center gap-2">
           <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: p.color }} />
@@ -21,7 +28,6 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
-// Compact Y-axis formatter: 1500000 → "S$1.5M"
 function formatYAxis(value) {
   if (value >= 1_000_000) return `S$${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000)     return `S$${(value / 1_000).toFixed(0)}K`;
@@ -36,25 +42,52 @@ function snapXLabel(snap) {
 }
 
 export default function SnapshotTrendChart() {
-  const state = useStore();
+  const state     = useStore();
+  const liveTotal = selectors.totalNetWorth(state);
+  const liveInv   = selectors.investableNetWorth(state);
+
   const snapshots = [...state.snapshots].sort((a, b) => {
     if (a.year !== b.year) return a.year - b.year;
     return (a.month ?? 12) - (b.month ?? 12);
   });
 
-  if (snapshots.length < 2) {
+  // Need at least 1 snapshot to draw the chart (live point fills in as second)
+  if (snapshots.length === 0) {
     return (
       <p className="text-sm text-gray-400 text-center py-8">
-        Save at least 2 snapshots to see the trend chart.
+        Save at least 1 snapshot to see the trend chart.
       </p>
     );
   }
 
-  const data = snapshots.map((s) => ({
+  const savedData = snapshots.map((s) => ({
     date:         snapXLabel(s),
     'Total NW':   s.totals.total_net_worth,
     'Investable': s.totals.investable_net_worth,
+    isLive:       false,
   }));
+
+  // Append live point (always last — represents current NW)
+  const data = [
+    ...savedData,
+    { date: 'Live', 'Total NW': liveTotal, 'Investable': liveInv, isLive: true },
+  ];
+
+  // Custom dot: live point gets a filled green ring, others normal
+  const liveDot = ({ cx, cy, index }) => {
+    if (index !== data.length - 1) return <circle key={`dot-${index}`} cx={cx} cy={cy} r={3} fill="#22c55e" stroke="#22c55e" />;
+    return (
+      <circle key={`dot-${index}`} cx={cx} cy={cy} r={5}
+        fill="white" stroke="#22c55e" strokeWidth={2.5} />
+    );
+  };
+  const liveInvDot = ({ cx, cy, index }) => {
+    if (index !== data.length - 1) return <circle key={`dot-${index}`} cx={cx} cy={cy} r={3} fill="#3b82f6" stroke="#3b82f6" />;
+    return (
+      <circle key={`dot-${index}`} cx={cx} cy={cy} r={5}
+        fill="white" stroke="#3b82f6" strokeWidth={2.5} />
+    );
+  };
 
   return (
     <ResponsiveContainer width="100%" height={260}>
@@ -73,13 +106,16 @@ export default function SnapshotTrendChart() {
         <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} />
         <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: '#9ca3af' }} width={64} />
         <Tooltip content={<CustomTooltip />} />
+        {/* Legend: Total NW first, then Investable */}
         <Legend
           iconType="circle"
           iconSize={8}
           formatter={(v) => <span className="text-xs text-gray-600">{v}</span>}
         />
-        <Area type="monotone" dataKey="Total NW"   stroke="#22c55e" fill="url(#gradTotal)"  strokeWidth={2} dot={{ r: 3 }} />
-        <Area type="monotone" dataKey="Investable" stroke="#3b82f6" fill="url(#gradInvest)" strokeWidth={2} dot={{ r: 3 }} />
+        <Area type="monotone" dataKey="Total NW"   name="Total NW"
+          stroke="#22c55e" fill="url(#gradTotal)"  strokeWidth={2} dot={liveDot} />
+        <Area type="monotone" dataKey="Investable" name="Investable"
+          stroke="#3b82f6" fill="url(#gradInvest)" strokeWidth={2} dot={liveInvDot} />
       </AreaChart>
     </ResponsiveContainer>
   );
