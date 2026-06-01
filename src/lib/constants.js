@@ -7,44 +7,51 @@ export const CATEGORY_META = {
   cash_savings: {
     key: 'cash_savings',
     label: 'Cash & Savings',
-    investable: true,   // default investable toggle value
-    source: 'manual',  // 'manual' | 'portfolio' (portfolio = auto-fed by Phase 2)
+    investable: true,
+    source: 'manual',
+    is_cpf: false,
   },
   sgx_equities: {
     key: 'sgx_equities',
     label: 'SGX Equities',
     investable: true,
     source: 'portfolio',
+    is_cpf: false,
   },
   us_equities: {
     key: 'us_equities',
     label: 'US Equities',
     investable: true,
     source: 'portfolio',
+    is_cpf: false,
   },
   cpf: {
     key: 'cpf',
     label: 'CPF',
-    investable: false,  // non-investable by default per PRD
+    investable: false,
     source: 'manual',
+    is_cpf: true,   // always excluded from NW Excl. CPF
   },
   property: {
     key: 'property',
     label: 'Own-Stay Property',
-    investable: false,  // non-investable by default per PRD
+    investable: false,
     source: 'manual',
+    is_cpf: false,
   },
   crypto: {
     key: 'crypto',
     label: 'Crypto',
     investable: true,
-    source: 'portfolio',  // auto-fed from crypto positions
+    source: 'portfolio',
+    is_cpf: false,
   },
   other: {
     key: 'other',
     label: 'Other',
     investable: true,
     source: 'manual',
+    is_cpf: false,
   },
 };
 
@@ -65,15 +72,16 @@ export function buildDefaultCategories() {
   for (const key of DEFAULT_CATEGORY_ORDER) {
     const meta = CATEGORY_META[key];
     categories[key] = {
-      label: meta.label,
-      value: 0,
+      label:     meta.label,
+      value:     0,
       investable: meta.investable,
-      source: meta.source,
+      source:    meta.source,
+      is_cpf:    meta.is_cpf ?? false,
     };
   }
   return categories;
 }
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 export const STORAGE_KEY = 'hfi-store';

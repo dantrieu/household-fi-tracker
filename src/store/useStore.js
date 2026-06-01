@@ -36,6 +36,27 @@ const useStore = create(
         }));
       },
 
+      /**
+       * Toggle a category's is_cpf flag (excluded from NW Excl. CPF).
+       * The built-in 'cpf' key is always tagged — cannot be untagged.
+       */
+      toggleCpfTag(key) {
+        if (key === 'cpf') return; // permanently tagged
+        set((state) => ({
+          last_modified: new Date().toISOString(),
+          net_worth: {
+            ...state.net_worth,
+            categories: {
+              ...state.net_worth.categories,
+              [key]: {
+                ...state.net_worth.categories[key],
+                is_cpf: !state.net_worth.categories[key].is_cpf,
+              },
+            },
+          },
+        }));
+      },
+
       /** Toggle a category's investable flag. */
       toggleInvestable(key) {
         set((state) => ({
@@ -77,7 +98,7 @@ const useStore = create(
             category_order: [...state.net_worth.category_order, key],
             categories: {
               ...state.net_worth.categories,
-              [key]: { label, value: 0, investable: true, source: 'manual' },
+              [key]: { label, value: 0, investable: true, source: 'manual', is_cpf: false },
             },
           },
         }));
@@ -462,9 +483,11 @@ export const selectors = {
 
   /** Total minus CPF. */
   netWorthExCpf(state) {
-    const total = selectors.totalNetWorth(state);
-    const cpf = state.net_worth.categories.cpf?.value || 0;
-    return total - cpf;
+    // Exclude ALL categories tagged is_cpf (not just the built-in 'cpf' key)
+    return Object.values(state.net_worth.categories).reduce(
+      (sum, cat) => (cat.is_cpf ? sum : sum + (cat.value || 0)),
+      0
+    );
   },
 
   /**

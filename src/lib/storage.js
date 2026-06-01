@@ -65,10 +65,29 @@ function migrate_1_to_2(state) {
   };
 }
 
+/**
+ * v2 → v3: Add is_cpf flag to all categories.
+ * Built-in 'cpf' key defaults to true; everything else defaults to false.
+ */
+function migrate_2_to_3(state) {
+  const categories = { ...state.net_worth.categories };
+  for (const key of Object.keys(categories)) {
+    if (categories[key].is_cpf == null) {
+      categories[key] = { ...categories[key], is_cpf: key === 'cpf' };
+    }
+  }
+  return {
+    ...state,
+    schema_version: 3,
+    net_worth: { ...state.net_worth, categories },
+  };
+}
+
 // ─── Migration registry ───────────────────────────────────────────────────────
 const MIGRATIONS = {
   0: migrate_0_to_1,
   1: migrate_1_to_2,
+  2: migrate_2_to_3,
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────

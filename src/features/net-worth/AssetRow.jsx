@@ -11,6 +11,7 @@ export default function AssetRow({ categoryKey }) {
   const category            = useStore((s) => s.net_worth.categories[categoryKey]);
   const setCategoryValue    = useStore((s) => s.setCategoryValue);
   const toggleInvestable    = useStore((s) => s.toggleInvestable);
+  const toggleCpfTag        = useStore((s) => s.toggleCpfTag);
   const updateCategoryLabel = useStore((s) => s.updateCategoryLabel);
   const removeCategory      = useStore((s) => s.removeCategory);
 
@@ -72,6 +73,8 @@ export default function AssetRow({ categoryKey }) {
   ) : (
     <div className="flex items-center gap-1 min-w-0">
       <span className="text-sm font-medium text-gray-800 truncate">{category.label}</span>
+
+      {/* auto-sync badge for portfolio-fed rows */}
       {isPortfolioFed ? (
         <span
           className="text-xs text-blue-400 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 shrink-0 cursor-default"
@@ -87,6 +90,34 @@ export default function AssetRow({ categoryKey }) {
           title="Rename"
         >
           ✏️
+        </button>
+      )}
+
+      {/* CPF tag: permanent on built-in cpf key; toggleable on custom rows */}
+      {category.is_cpf && categoryKey === 'cpf' && (
+        <span
+          className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 shrink-0 cursor-default"
+          title="Always excluded from Total NW, Excl. CPF"
+        >
+          CPF
+        </span>
+      )}
+      {category.is_cpf && categoryKey !== 'cpf' && (
+        <button
+          onClick={() => toggleCpfTag(categoryKey)}
+          className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 shrink-0 hover:bg-amber-100 transition-colors"
+          title="Excluded from Total NW, Excl. CPF — click to remove tag"
+        >
+          CPF ×
+        </button>
+      )}
+      {!category.is_cpf && !isPortfolioFed && (
+        <button
+          onClick={() => toggleCpfTag(categoryKey)}
+          className="text-[10px] text-amber-400 opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0 transition-opacity"
+          title="Tag as CPF — excludes from Total NW, Excl. CPF"
+        >
+          +CPF
         </button>
       )}
     </div>
