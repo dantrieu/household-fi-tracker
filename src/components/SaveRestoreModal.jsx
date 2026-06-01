@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useStore from '../store/useStore';
-import { saveToCloud, loadFromCloud, deleteFromCloud } from '../lib/cloudSync';
+import { saveToCloud, loadFromCloud, deleteFromCloud, checkCloudExists } from '../lib/cloudSync';
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ function RiskNotice() {
 }
 
 function PassphraseInput({ value, onChange, placeholder = 'e.g. my-house-tracker-2024', disabled }) {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true); // visible by default
   return (
     <div className="relative">
       <input
@@ -48,7 +48,8 @@ function PassphraseInput({ value, onChange, placeholder = 'e.g. my-house-tracker
 function SaveTab() {
   const state = useStore();
   const [passphrase, setPassphrase] = useState('');
-  const [status, setStatus]         = useState(null); // null | 'saving' | 'ok' | 'error'
+  // null | 'checking' | 'newSlot' | 'saving' | 'ok' | 'error'
+  const [status, setStatus]         = useState(null);
   const [errorMsg, setErrorMsg]     = useState('');
 
   // Delete state
@@ -58,15 +59,38 @@ function SaveTab() {
   const [deleteConfirm, setDeleteConfirm]       = useState(false);
 
   async function handleSave() {
-    if (passphrase.trim().length < 6) {
+    const phrase = passphrase.trim();
+    if (phrase.length < 6) {
       setErrorMsg('Passphrase must be at least 6 characters.');
       setStatus('error');
       return;
     }
+
+    // If already confirmed for new slot, skip straight to saving
+    if (status === 'newSlot') {
+      await doSave(phrase);
+      return;
+    }
+
+    // Check whether this passphrase already has a cloud save
+    setStatus('checking');
+    const exists = await checkCloudExists(phrase);
+
+    if (exists === false) {
+      // New passphrase — warn user before creating a new slot
+      setStatus('newSlot');
+      return;
+    }
+
+    // Exists (or unknown) — save directly
+    await doSave(phrase);
+  }
+
+  async function doSave(phrase) {
     setStatus('saving');
     setErrorMsg('');
     try {
-      await saveToCloud(passphrase.trim(), state);
+      await saveToCloud(phrase, state);
       setStatus('ok');
     } catch (err) {
       setErrorMsg(err.message);
@@ -107,17 +131,25 @@ function SaveTab() {
         </label>
         <PassphraseInput
           value={passphrase}
-          onChange={setPassphrase}
-          disabled={status === 'saving'}
+          onChange={(v) => { setPassphrase(v); if (status === 'newSlot' || status === 'error') setStatus(null); }}
+          disabled={status === 'saving' || status === 'checking'}
         />
         <p className="text-xs text-gray-400">Minimum 6 characters. Case-insensitive.</p>
       </div>
 
       <RiskNotice />
 
+      {status === 'newSlot' && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          ⚠️ <strong>New passphrase</strong> — no existing save found for
+          <strong className="mx-1">"{passphrase.trim().toLowerCase()}"</strong>.
+          This will create a brand-new cloud slot (not updating any previous save).
+          Click <strong>Save</strong> again to confirm.
+        </div>
+      )}
       {status === 'ok' && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 flex items-center gap-2">
-          ✅ Data saved! Use <strong className="mx-1">"{passphrase.trim().toLowerCase()}"</strong> to restore on any device.
+          ✅ Saved! Use <strong className="mx-1">"{passphrase.trim().toLowerCase()}"</strong> to restore on any device.
         </div>
       )}
       {status === 'error' && (
@@ -128,13 +160,18 @@ function SaveTab() {
 
       <button
         onClick={handleSave}
-        disabled={status === 'saving' || !passphrase.trim()}
-        className="w-full py-2 rounded-lg text-sm font-semibold
-                   bg-green-600 text-white hover:bg-green-700
-                   disabled:bg-gray-200 disabled:text-gray-400
-                   transition-colors"
+        disabled={status === 'saving' || status === 'checking' || !passphrase.trim()}
+        className={[
+          'w-full py-2 rounded-lg text-sm font-semibold transition-colors',
+          status === 'newSlot'
+            ? 'bg-amber-500 hover:bg-amber-600 text-white'
+            : 'bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-200 disabled:text-gray-400',
+        ].join(' ')}
       >
-        {status === 'saving' ? 'Saving…' : '💾 Save to cloud'}
+        {status === 'checking' ? 'Checking…'
+          : status === 'saving'  ? 'Saving…'
+          : status === 'newSlot' ? '⚠️ Confirm — save as new slot'
+          : '💾 Save to cloud'}
       </button>
 
       {/* ── Delete saved data ── */}

@@ -59,6 +59,25 @@ export async function deleteFromCloud(passphrase) {
 }
 
 /**
+ * Check whether a passphrase already has cloud data.
+ * Returns true (exists), false (new/not found), or null (network error — don't block).
+ */
+export async function checkCloudExists(passphrase) {
+  try {
+    const res = await fetch('/api/load-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passphrase }),
+    });
+    if (res.status === 404) return false;
+    if (!res.ok) return null;
+    return true;
+  } catch {
+    return null; // network error — don't block the save
+  }
+}
+
+/**
  * Load previously saved state from Vercel KV.
  * Returns the raw payload object — caller is responsible for merging into store.
  */

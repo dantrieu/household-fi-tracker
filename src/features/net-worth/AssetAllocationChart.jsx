@@ -62,7 +62,7 @@ export default function AssetAllocationChart() {
   const state   = useStore();
   const ordered = selectors.orderedCategories(state);
   const [view, setView]       = useState('all');
-  const [grouped, setGrouped] = useState(false);
+  const [grouped, setGrouped] = useState(true); // default: grouped view
 
   // Build chart data
   let data;
