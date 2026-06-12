@@ -83,11 +83,28 @@ function migrate_2_to_3(state) {
   };
 }
 
+/**
+ * v3 → v4: Rename "US Equities" → "US / Intl Equities" for existing stores.
+ * Only renames the default label; user-renamed categories are left untouched.
+ */
+function migrate_3_to_4(state) {
+  const categories = { ...state.net_worth.categories };
+  if (categories.us_equities && categories.us_equities.label === 'US Equities') {
+    categories.us_equities = { ...categories.us_equities, label: 'US / Intl Equities' };
+  }
+  return {
+    ...state,
+    schema_version: 4,
+    net_worth: { ...state.net_worth, categories },
+  };
+}
+
 // ─── Migration registry ───────────────────────────────────────────────────────
 const MIGRATIONS = {
   0: migrate_0_to_1,
   1: migrate_1_to_2,
   2: migrate_2_to_3,
+  3: migrate_3_to_4,
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────

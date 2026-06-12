@@ -50,7 +50,7 @@ export default function PositionRow({ position, totalSGD }) {
       : exchange === 'CRYPTO' ? 'bg-orange-50 text-orange-600'
       : 'bg-purple-50 text-purple-600',
     ].join(' ')}>
-      {isCrypto ? 'Crypto' : exchange}
+      {isCrypto ? 'Crypto' : exchange === 'US' ? 'US / Intl' : exchange}
     </span>
   );
 

@@ -61,7 +61,7 @@ export default function AddPositionForm({ onAdd, loading }) {
                        focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
           >
             <option value="SGX">SGX</option>
-            <option value="US">US</option>
+            <option value="US">US / Intl</option>
             <option value="CRYPTO">Crypto</option>
           </select>
         </div>
@@ -70,7 +70,8 @@ export default function AddPositionForm({ onAdd, loading }) {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">
             {exchange === 'CRYPTO' ? 'Symbol' : 'Ticker'}
-            {exchange === 'SGX' && <span className="text-gray-400"> (no .SI needed)</span>}
+            {exchange === 'SGX'    && <span className="text-gray-400"> (no .SI needed)</span>}
+            {exchange === 'US'     && <span className="text-gray-400"> (add suffix for intl, e.g. .L)</span>}
           </label>
           <input
             autoFocus
@@ -79,7 +80,7 @@ export default function AddPositionForm({ onAdd, loading }) {
             placeholder={
               exchange === 'SGX' ? 'e.g. D05'
               : exchange === 'CRYPTO' ? 'e.g. BTC'
-              : 'e.g. AAPL'
+              : 'e.g. AAPL or VWRA.L'
             }
             className="w-28 border border-gray-300 rounded-md px-2.5 py-1.5 text-sm
                        focus:outline-none focus:ring-2 focus:ring-green-500"

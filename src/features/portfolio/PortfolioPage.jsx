@@ -75,7 +75,8 @@ export default function PortfolioPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Portfolio</h1>
         <p className="text-sm text-gray-500">
-          SGX and US equity holdings. Prices via Yahoo Finance (15-min delay).
+          SGX, US and international equity holdings. Prices via Yahoo Finance (15-min delay).
+          For international tickers, include the exchange suffix (e.g. VWRA.L for LSE).
           Portfolio total auto-updates Net Worth.
         </p>
       </div>

@@ -20,7 +20,7 @@ export const CATEGORY_META = {
   },
   us_equities: {
     key: 'us_equities',
-    label: 'US Equities',
+    label: 'US / Intl Equities',
     investable: true,
     source: 'portfolio',
     is_cpf: false,
@@ -83,5 +83,5 @@ export function buildDefaultCategories() {
 }
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 export const STORAGE_KEY = 'hfi-store';
