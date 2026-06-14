@@ -113,7 +113,8 @@ export default function FIInputsPanel() {
         : targetPortfolio;
       const required = requiredAnnualSavings(investablePortfolio, n, effectiveTarget, annualReturnPct);
       if (required != null) {
-        setFiSetting('annual_savings_sgd', Math.max(0, Math.round(required / 1000) * 1000));
+        // Ceiling (not round) so savings always guarantee FI by the target year
+        setFiSetting('annual_savings_sgd', Math.max(0, Math.ceil(required / 1000) * 1000));
       }
     }
   }
