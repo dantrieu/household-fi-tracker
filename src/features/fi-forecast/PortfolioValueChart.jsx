@@ -45,6 +45,8 @@ export default function PortfolioValueChart() {
   const {
     projectionSeries,
     targetPortfolioFull,
+    targetPortfolioAtFI,
+    applyInflation,
     currentAge,
     retirementAge,
     stopContributionsAtRetirement,
@@ -53,6 +55,9 @@ export default function PortfolioValueChart() {
     swrPct,
     annualSavings,
   } = metrics;
+
+  // When inflation is applied, show the nominal target at the projected FI year
+  const displayTarget = applyInflation && targetPortfolioAtFI ? targetPortfolioAtFI : targetPortfolioFull;
 
   const currentYear = new Date().getFullYear();
 
@@ -67,7 +72,7 @@ export default function PortfolioValueChart() {
     ? currentYear + Math.max(0, retirementAge - currentAge)
     : null;
 
-  const maxPortfolio = Math.max(...data.map((d) => d.portfolio), targetPortfolioFull ?? 0);
+  const maxPortfolio = Math.max(...data.map((d) => d.portfolio), displayTarget ?? 0);
   const yMax = Math.ceil(maxPortfolio * 1.12 / 100_000) * 100_000;
 
   return (
@@ -95,13 +100,18 @@ export default function PortfolioValueChart() {
             <Tooltip content={<ChartTooltip />} />
 
             {/* Target portfolio — horizontal dashed line */}
-            {targetPortfolioFull > 0 && (
+            {displayTarget > 0 && (
               <ReferenceLine
-                y={targetPortfolioFull}
+                y={displayTarget}
                 stroke="#94a3b8"
                 strokeDasharray="6 3"
                 strokeWidth={1.5}
-                label={{ value: `Target  ${fmtAxis(targetPortfolioFull)}`, position: 'insideTopLeft', fontSize: 10, fill: '#6b7280' }}
+                label={{
+                  value: applyInflation
+                    ? `Target ${fmtAxis(displayTarget)} nominal`
+                    : `Target ${fmtAxis(displayTarget)}`,
+                  position: 'insideTopLeft', fontSize: 10, fill: '#6b7280',
+                }}
               />
             )}
 
@@ -143,7 +153,11 @@ export default function PortfolioValueChart() {
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-        <span>🟢 Green = portfolio value &nbsp;·&nbsp; — Grey dashed = FI target ({fmtAxis(targetPortfolioFull ?? 0)})</span>
+        <span>
+          🟢 Green = portfolio value &nbsp;·&nbsp; — Grey dashed = FI target (
+          {fmtAxis(displayTarget ?? 0)}
+          {applyInflation && targetPortfolioAtFI ? ' nominal' : ''})
+        </span>
         {stopContributionsAtRetirement && retirementYear && (
           <span>🟡 Amber = retirement (contributions stop, drawdown begins)</span>
         )}

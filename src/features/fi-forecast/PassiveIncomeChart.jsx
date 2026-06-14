@@ -3,8 +3,9 @@ import { formatSGD } from '../../lib/format';
 import Card from '../../components/ui/Card';
 import {
   ResponsiveContainer,
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -78,6 +79,8 @@ export default function PassiveIncomeChart() {
     currentAge,
     swrPct,
     annualReturnPct,
+    applyInflation,
+    inflationPct,
   } = metrics;
 
   const currentYear = new Date().getFullYear();
@@ -87,14 +90,12 @@ export default function PassiveIncomeChart() {
     ? currentYear + Math.max(0, CPF_PAYOUT_AGE - currentAge)
     : null;
 
-  // Detect income crossover from series data
-  // (portfolioIncome alone crosses target — before CPF)
-  // (cpfContribution pushes total over target — with CPF)
+  // Detect income crossover from series data — use d.target so inflation-adjusted threshold is used
   let fiYearPortfolio = null;
   let fiYearTotal     = null;
   for (const d of projectionSeries) {
-    if (fiYearPortfolio == null && d.portfolioIncome >= targetMonthlyIncome) fiYearPortfolio = d.year;
-    if (fiYearTotal     == null && d.totalIncome     >= targetMonthlyIncome) fiYearTotal     = d.year;
+    if (fiYearPortfolio == null && d.portfolioIncome >= d.target) fiYearPortfolio = d.year;
+    if (fiYearTotal     == null && d.totalIncome     >= d.target) fiYearTotal     = d.year;
   }
 
   // Cutoff: show until a few years past first income crossover,
@@ -121,8 +122,8 @@ export default function PassiveIncomeChart() {
   const hasCpfInRange = cpfLifePayout > 0 && data.some((d) => d.cpfContribution > 0);
   const showCpfMarker = hasCpfInRange && cpfKickInYear != null && cpfKickInYear <= cutoff;
 
-  // Y-axis: accommodate target + max income
-  const maxIncome = Math.max(...data.map((d) => (d.portfolioIncome ?? 0) + (d.cpfContribution ?? 0)), targetMonthlyIncome);
+  // Y-axis: accommodate target (may be inflated) + max income
+  const maxIncome = Math.max(...data.map((d) => Math.max((d.portfolioIncome ?? 0) + (d.cpfContribution ?? 0), d.target ?? 0)));
   const yMax      = Math.ceil(maxIncome * 1.2 / 500) * 500;
 
   return (
@@ -144,7 +145,7 @@ export default function PassiveIncomeChart() {
             Orange dashed horizontal = target monthly income.
             The purple band appears at age 65 — the CPF step-up is immediately visible.
           */}
-          <AreaChart data={data} margin={{ top: 16, right: 90, left: 8, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 16, right: 90, left: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="piPortGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.35} />
@@ -181,18 +182,16 @@ export default function PassiveIncomeChart() {
               iconSize={8}
             />
 
-            {/* ── Target monthly income — horizontal reference line ── */}
-            <ReferenceLine
-              y={targetMonthlyIncome}
+            {/* ── Target monthly income — flat or rising with inflation ── */}
+            <Line
+              type="monotone"
+              dataKey="target"
+              name={applyInflation ? `Target income (+${inflationPct}%/yr)` : 'Target income/mo'}
               stroke="#f97316"
-              strokeDasharray="6 3"
               strokeWidth={1.5}
-              label={{
-                value: `Target  ${fmtAxis(targetMonthlyIncome)}/mo`,
-                position: 'right',
-                fontSize: 10,
-                fill: '#ea580c',
-              }}
+              strokeDasharray="6 3"
+              dot={false}
+              activeDot={false}
             />
 
             {/* ── CPF kick-in at 65 — vertical marker ── */}
@@ -270,14 +269,18 @@ export default function PassiveIncomeChart() {
                 activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
               />
             )}
-          </AreaChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
         <span>🔵 Blue = portfolio passive income</span>
         {hasCpfInRange && <span>🟣 Purple band = CPF LIFE income added from age 65</span>}
-        <span>— Orange dashed = target monthly income</span>
+        <span>
+          {applyInflation
+            ? `↗ Orange dashed = target income rising at ${inflationPct}%/yr`
+            : '— Orange dashed = target monthly income (flat)'}
+        </span>
       </div>
     </Card>
   );
