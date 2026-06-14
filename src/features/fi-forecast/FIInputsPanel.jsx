@@ -71,17 +71,31 @@ export default function FIInputsPanel() {
   const stopAtRetirement = fi.stop_contributions_at_retirement ?? true;
 
   // Pre-compute FI target portfolio for live linkage
-  const swr = (fi.swr_pct ?? 4) / 100;
-  const annualReturnPct  = fi.assumed_annual_return_pct ?? 6;
-  const targetPortfolio  = fi.target_monthly_income_sgd
+  const swr             = (fi.swr_pct ?? 4) / 100;
+  const annualReturnPct = fi.assumed_annual_return_pct ?? 6;
+  const r               = annualReturnPct / 100;
+  const inf             = (fi.apply_inflation ?? true) ? (fi.inflation_rate_pct ?? 2.5) / 100 : 0;
+  const targetPortfolio = fi.target_monthly_income_sgd
     ? (fi.target_monthly_income_sgd * 12) / swr
     : null;
 
   // ── Annual savings → auto-update retirement age ────────────────────────────
   function handleSavingsChange(newSavings) {
     setFiSetting('annual_savings_sgd', newSavings);
-    if (newSavings != null && targetPortfolio != null && fi.current_age != null) {
-      const years = yearsToFI(investablePortfolio, newSavings, targetPortfolio, annualReturnPct);
+    if (newSavings != null && fi.target_monthly_income_sgd != null && fi.current_age != null) {
+      let years = null;
+      if (inf > 0) {
+        // Inflation-aware: target NW rises each year — mirror computeFIMetrics Scenario A
+        let p = investablePortfolio;
+        for (let y = 1; y <= 60; y++) {
+          p = p * (1 + r) + newSavings;
+          if (p >= (fi.target_monthly_income_sgd * Math.pow(1 + inf, y) * 12) / swr) {
+            years = y; break;
+          }
+        }
+      } else {
+        years = yearsToFI(investablePortfolio, newSavings, targetPortfolio, annualReturnPct);
+      }
       if (years != null) {
         setFiSetting('target_retirement_age', Math.round(fi.current_age + years));
       }
@@ -91,11 +105,14 @@ export default function FIInputsPanel() {
   // ── Retirement age → auto-update annual savings ────────────────────────────
   function handleRetirementAgeChange(newAge) {
     setFiSetting('target_retirement_age', newAge);
-    if (newAge != null && fi.current_age != null && newAge > fi.current_age && targetPortfolio != null) {
-      const n        = newAge - fi.current_age;
-      const required = requiredAnnualSavings(investablePortfolio, n, targetPortfolio, annualReturnPct);
+    if (newAge != null && fi.current_age != null && newAge > fi.current_age && fi.target_monthly_income_sgd != null) {
+      const n = newAge - fi.current_age;
+      // When inflation is on, solve for the nominal target at year n
+      const effectiveTarget = inf > 0
+        ? (fi.target_monthly_income_sgd * Math.pow(1 + inf, n) * 12) / swr
+        : targetPortfolio;
+      const required = requiredAnnualSavings(investablePortfolio, n, effectiveTarget, annualReturnPct);
       if (required != null) {
-        // Round to nearest $1,000 for clean numbers
         setFiSetting('annual_savings_sgd', Math.max(0, Math.round(required / 1000) * 1000));
       }
     }
