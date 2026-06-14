@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import SaveRestoreModal from '../SaveRestoreModal';
+import { useDarkMode } from '../../hooks/useDarkMode';
 
 const LINKS = [
   { to: '/',            label: 'Net Worth',  short: 'Net Worth'  },
@@ -10,14 +11,15 @@ const LINKS = [
 
 export default function NavBar() {
   const [showCloud, setShowCloud] = useState(false);
+  const [dark, setDark] = useDarkMode();
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-14 gap-2">
 
           {/* Brand — full on desktop, emoji only on mobile */}
-          <span className="font-semibold text-gray-900 tracking-tight text-sm shrink-0">
+          <span className="font-semibold text-gray-900 dark:text-gray-100 tracking-tight text-sm shrink-0">
             <span className="sm:hidden">🏠</span>
             <span className="hidden sm:inline">🏠 Household FI Tracker</span>
           </span>
@@ -33,29 +35,42 @@ export default function NavBar() {
                   [
                     'px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap',
                     isActive
-                      ? 'bg-green-50 text-green-700'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100',
+                      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800',
                   ].join(' ')
                 }
               >
-                {/* Shorter label on very small screens */}
                 <span className="sm:hidden">{short}</span>
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
             ))}
           </nav>
 
-          {/* Save / Load — icon + label on desktop, icon only on mobile */}
-          <button
-            onClick={() => setShowCloud(true)}
-            title="Save / Load data"
-            className="shrink-0 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                       bg-green-600 text-white hover:bg-green-700
-                       transition-colors flex items-center gap-1 sm:gap-1.5"
-          >
-            💾
-            <span className="hidden sm:inline">Save / Load</span>
-          </button>
+          {/* Right controls */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setDark((d) => !d)}
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="px-2 py-1.5 rounded-md text-sm text-gray-500 dark:text-gray-400
+                         hover:text-gray-800 dark:hover:text-gray-200
+                         hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              {dark ? '☀️' : '🌙'}
+            </button>
+
+            {/* Save / Load — icon + label on desktop, icon only on mobile */}
+            <button
+              onClick={() => setShowCloud(true)}
+              title="Save / Load data"
+              className="px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                         bg-green-600 text-white hover:bg-green-700
+                         transition-colors flex items-center gap-1 sm:gap-1.5"
+            >
+              💾
+              <span className="hidden sm:inline">Save / Load</span>
+            </button>
+          </div>
 
         </div>
       </header>
