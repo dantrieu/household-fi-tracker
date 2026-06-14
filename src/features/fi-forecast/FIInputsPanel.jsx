@@ -101,11 +101,11 @@ export default function FIInputsPanel() {
     }
   }
 
-  // Inflation preview — show what today's target grows to by FI year
-  const yearsToFI = fi.target_retirement_age != null && fi.current_age != null
+  // Inflation preview — show what today's target grows to by retirement year
+  const previewYears = fi.target_retirement_age != null && fi.current_age != null
     ? Math.max(1, fi.target_retirement_age - fi.current_age) : null;
-  const inflatedAtFI = yearsToFI && fi.target_monthly_income_sgd
-    ? Math.round(fi.target_monthly_income_sgd * Math.pow(1 + (fi.inflation_rate_pct ?? 2.5) / 100, yearsToFI))
+  const inflatedAtFI = previewYears && fi.target_monthly_income_sgd
+    ? Math.round(fi.target_monthly_income_sgd * Math.pow(1 + (fi.inflation_rate_pct ?? 2.5) / 100, previewYears))
     : null;
   const fiYear = fi.current_age != null && fi.target_retirement_age != null
     ? new Date().getFullYear() + (fi.target_retirement_age - fi.current_age) : null;
