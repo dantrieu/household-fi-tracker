@@ -163,6 +163,43 @@ export default function FIInputsPanel() {
           </InputRow>
         </div>
 
+        {/* ── Inflation ─────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4">
+          <InputRow
+            label="Inflation rate"
+            hint="Singapore CPI ~2–3% p.a."
+          >
+            <NumberInput
+              value={fi.inflation_rate_pct ?? 2.5}
+              onChange={(v) => setFiSetting('inflation_rate_pct', v)}
+              min={0}
+              max={20}
+              step={0.5}
+              suffix="%"
+            />
+          </InputRow>
+
+          <div className="flex flex-col justify-end pb-1">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={fi.apply_inflation ?? true}
+                onChange={(e) => setFiSetting('apply_inflation', e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600
+                           focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
+              />
+              <div>
+                <p className="text-xs font-medium text-gray-700">Apply inflation to projection</p>
+                <p className="text-xs text-gray-400 leading-snug mt-0.5">
+                  {(fi.apply_inflation ?? true)
+                    ? 'Target income grows each year — shows nominal NW needed at FI.'
+                    : 'Target income stays flat in today\'s dollars.'}
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
         {/* ══ Linked: Annual savings ↔ Retirement age ════════════════════════
             Each field updates the other automatically.
             Savings ↑ → retirement age drops (reach target earlier).

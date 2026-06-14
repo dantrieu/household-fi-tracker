@@ -38,6 +38,9 @@ export default function FIMetricsCards() {
     yearsWithoutCPF,
     progressPct,
     swrPct,
+    targetPortfolioAtFI,
+    applyInflation,
+    inflationPct,
     ready,
   } = metrics;
 
@@ -93,7 +96,12 @@ export default function FIMetricsCards() {
           !ready      ? 'Fill in all inputs to project'
           : alreadyFI ? 'Already financially independent'
           : fiYearWithoutCPF
-            ? `${yearsWithoutCPF} yrs away · ${formatPct(progressPct)} of target`
+            ? [
+                `${yearsWithoutCPF} yrs away · ${formatPct(progressPct)} of target`,
+                applyInflation && targetPortfolioAtFI
+                  ? `Target NW at FI: ${fmtSGD(targetPortfolioAtFI)} nominal (+${inflationPct}% p.a.)`
+                  : null,
+              ].filter(Boolean).join(' · ')
             : 'Increase savings or adjust return rate'
         }
       />

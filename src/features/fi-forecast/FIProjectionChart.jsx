@@ -74,7 +74,7 @@ function ChartTooltip({ active, payload }) {
       )}
 
       <div className="flex justify-between gap-4 mt-1.5 pt-1 border-t border-gray-100">
-        <span className="text-gray-500">Target income</span>
+        <span className="text-orange-500">Target income</span>
         <span className="tabular-nums text-gray-600">{formatSGD(d.target ?? 0)}/mo</span>
       </div>
     </div>
@@ -101,6 +101,7 @@ export default function FIProjectionChart() {
     projectionSeries,
     targetMonthlyIncome,
     targetPortfolioFull,
+    targetPortfolioAtFI,
     cpfLifePayout,
     currentAge,
     retirementAge,
@@ -108,16 +109,24 @@ export default function FIProjectionChart() {
     swrPct,
     annualSavings,
     stopContributionsAtRetirement,
+    applyInflation,
+    inflationPct,
   } = metrics;
+
+  // Nominal target NW for the portfolio reference line
+  const targetPortfolioRef = applyInflation && targetPortfolioAtFI
+    ? targetPortfolioAtFI
+    : targetPortfolioFull;
 
   const currentYear = new Date().getFullYear();
 
   // ── Detect income crossover years from series (more accurate with withdrawal phase) ──
+  // Compare against d.target so inflation-adjusted target is used automatically
   let fiYearPortfolio = null;
   let fiYearTotal     = null;
   for (const d of projectionSeries) {
-    if (fiYearPortfolio == null && d.portfolioIncome >= targetMonthlyIncome) fiYearPortfolio = d.year;
-    if (fiYearTotal     == null && d.totalIncome     >= targetMonthlyIncome) fiYearTotal     = d.year;
+    if (fiYearPortfolio == null && d.portfolioIncome >= d.target) fiYearPortfolio = d.year;
+    if (fiYearTotal     == null && d.totalIncome     >= d.target) fiYearTotal     = d.year;
   }
 
   // ── Trim: show a few years past first crossover ───────────────────────────
@@ -136,10 +145,10 @@ export default function FIProjectionChart() {
   const showCpfMarker = cpfLifePayout > 0 && cpfKickInYear != null && cpfKickInYear <= cutoff;
 
   // ── Y-axis domains ────────────────────────────────────────────────────────
-  const maxPortfolio = Math.max(...data.map((d) => d.portfolio), targetPortfolioFull);
+  const maxPortfolio = Math.max(...data.map((d) => d.portfolio), targetPortfolioRef);
   const portfolioMax = Math.ceil(maxPortfolio * 1.15 / 100_000) * 100_000;
 
-  const maxIncome    = Math.max(...data.map((d) => d.totalIncome), targetMonthlyIncome);
+  const maxIncome    = Math.max(...data.map((d) => Math.max(d.totalIncome, d.target)));
   const incomeMax    = Math.ceil(maxIncome * 1.2 / 1000) * 1000;
 
   return (
@@ -148,6 +157,7 @@ export default function FIProjectionChart() {
       action={
         <span className="text-xs text-gray-400">
           {annualReturnPct}% return · {swrPct ?? 4}% SWR · {formatSGD(annualSavings)}/yr
+          {applyInflation ? ` · ${inflationPct}% inflation` : ''}
         </span>
       }
     >
@@ -205,21 +215,16 @@ export default function FIProjectionChart() {
             {/* ── Target portfolio — horizontal on left axis ── */}
             <ReferenceLine
               yAxisId="left"
-              y={targetPortfolioFull}
+              y={targetPortfolioRef}
               stroke="#94a3b8"
               strokeDasharray="6 3"
               strokeWidth={1.5}
-              label={{ value: `Target ${fmtPortfolio(targetPortfolioFull)}`, position: 'insideTopLeft', fontSize: 10, fill: '#94a3b8' }}
-            />
-
-            {/* ── Target monthly income — horizontal on right axis ── */}
-            <ReferenceLine
-              yAxisId="right"
-              y={targetMonthlyIncome}
-              stroke="#f97316"
-              strokeDasharray="6 3"
-              strokeWidth={1.5}
-              label={{ value: `${fmtIncome(targetMonthlyIncome)}/mo`, position: 'right', fontSize: 10, fill: '#f97316' }}
+              label={{
+                value: applyInflation
+                  ? `Target ${fmtPortfolio(targetPortfolioRef)} nominal`
+                  : `Target ${fmtPortfolio(targetPortfolioRef)}`,
+                position: 'insideTopLeft', fontSize: 10, fill: '#94a3b8',
+              }}
             />
 
             {/* ── Retirement year — vertical marker ── */}
@@ -309,6 +314,19 @@ export default function FIProjectionChart() {
                 activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
               />
             )}
+
+            {/* ── Target income line (orange dashed — flat or rising with inflation) ── */}
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="target"
+              name={applyInflation ? `Target income (inflated ${inflationPct}%/yr)` : 'Target income/mo'}
+              stroke="#f97316"
+              strokeWidth={1.5}
+              strokeDasharray="6 3"
+              dot={false}
+              activeDot={false}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -318,8 +336,12 @@ export default function FIProjectionChart() {
         <span>🟢 Green area = portfolio value (left axis)</span>
         <span>🔵 Blue line = portfolio passive income/mo (right)</span>
         {cpfLifePayout > 0 && <span>🟣 Purple line = income + CPF LIFE from 65 (right)</span>}
-        <span>— Grey dashed = target portfolio</span>
-        <span>— Orange dashed = target monthly income</span>
+        <span>— Grey dashed = target portfolio (nominal)</span>
+        <span>
+          {applyInflation
+            ? `— Orange dashed = target income rising at ${inflationPct}%/yr`
+            : '— Orange dashed = target monthly income'}
+        </span>
       </div>
     </Card>
   );

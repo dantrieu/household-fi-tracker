@@ -516,6 +516,8 @@ export const selectors = {
       cpfPersons:                     state.fi_settings.cpf_persons ?? 1,
       swrPct:                         state.fi_settings.swr_pct ?? 4,
       stopContributionsAtRetirement:  state.fi_settings.stop_contributions_at_retirement ?? true,
+      inflationPct:                   state.fi_settings.inflation_rate_pct ?? 2.5,
+      applyInflation:                 state.fi_settings.apply_inflation ?? true,
     });
   },
 

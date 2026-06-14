@@ -78,11 +78,11 @@ export function requiredAnnualSavings(pv, n, targetFV, annualReturnPct) {
  *   year, age, portfolio,
  *   portfolioIncome   — portfolio × SWR / 12  (changes after retirement)
  *   totalIncome       — portfolioIncome + CPF LIFE (steps up at 65)
- *   target            — target monthly income (constant)
+ *   target            — target monthly income (inflated if inflationPct > 0)
  *
  * Withdrawal phase (when `stopContributionsAtRetirement` is true and age >= retirementAge):
  *   - No new contributions added
- *   - Portfolio is drawn down at (target income − CPF coverage) per year
+ *   - Portfolio is drawn down at (inflated target income − CPF coverage) per year
  *   - CPF offsets some withdrawal from age 65 onwards
  *   - Portfolio is capped at 0 (can't go negative)
  *
@@ -98,10 +98,12 @@ export function buildProjectionSeries({
   swrPct = 4,
   retirementAge = null,
   stopContributionsAtRetirement = true,
+  inflationPct = 0,        // annual inflation rate in %
   maxYears = 50,
 }) {
   const swr = swrPct / 100;
   const r   = annualReturnPct / 100;
+  const inf = inflationPct / 100;
 
   const series = [];
   let portfolio = investablePortfolio;
@@ -114,6 +116,9 @@ export function buildProjectionSeries({
     const cpfActive  = age != null && age >= CPF_PAYOUT_AGE;
     const cpfMonthly = cpfActive ? (cpfLifePayout ?? 0) : 0;
 
+    // Inflate target by year y
+    const inflatedTarget  = targetMonthlyIncome * Math.pow(1 + inf, y);
+
     // Monthly passive income from portfolio at this moment
     const portfolioIncome = (portfolio * swr) / 12;
     const totalIncome     = portfolioIncome + cpfMonthly;
@@ -121,16 +126,16 @@ export function buildProjectionSeries({
     series.push({
       year,
       age,
-      portfolio: Math.round(portfolio),
+      portfolio:       Math.round(portfolio),
       portfolioIncome: Math.round(portfolioIncome),
       totalIncome:     Math.round(totalIncome),
-      target:          targetMonthlyIncome,
+      target:          Math.round(inflatedTarget),
     });
 
     // ── Advance portfolio to next year ────────────────────────────────────
     if (stopContributionsAtRetirement && isRetired) {
-      // Withdrawal phase: CPF covers part of expenses; rest comes from portfolio
-      const annualWithdrawal = Math.max(0, targetMonthlyIncome - cpfMonthly) * 12;
+      // Withdrawal phase: draw down at inflated target minus CPF coverage
+      const annualWithdrawal = Math.max(0, inflatedTarget - cpfMonthly) * 12;
       portfolio = Math.max(0, portfolio * (1 + r) - annualWithdrawal);
     } else {
       // Accumulation phase: full contributions continue
@@ -153,19 +158,21 @@ export function computeFIMetrics({
   cpfPersons = 1,
   swrPct = 4,
   stopContributionsAtRetirement = true,
+  inflationPct = 0,        // annual inflation rate in %
+  applyInflation = false,  // whether to inflate the target each year
 }) {
   const swr = swrPct / 100;
+  const inf = applyInflation ? (inflationPct ?? 0) / 100 : 0;
 
   // ── Current passive income ────────────────────────────────────────────────
   const currentPassiveMonthly = (investablePortfolio * swr) / 12;
   const currentPassiveAnnual  = investablePortfolio * swr;
 
   // ── CPF LIFE estimate ─────────────────────────────────────────────────────
-  const cpfDetails        = estimateCpfLifeDetails(currentAge);
+  const cpfDetails          = estimateCpfLifeDetails(currentAge);
   const cpfMonthlyPerPerson = cpfDetails.monthlyPayout;
-  const estimatedFRS      = cpfDetails.projectedFRS;
-  // Total payout (single or couple)
-  const cpfLifePayout     = cpfMonthlyPerPerson * (cpfPersons ?? 1);
+  const estimatedFRS        = cpfDetails.projectedFRS;
+  const cpfLifePayout       = cpfMonthlyPerPerson * (cpfPersons ?? 1);
 
   // Partial metrics when target not set
   if (!targetMonthlyIncome) {
@@ -183,23 +190,40 @@ export function computeFIMetrics({
   }
 
   const annualContribution = annualSavings ?? 0;
+  const r = annualReturnPct / 100;
 
-  // ── FI target portfolio (annual income / SWR) ─────────────────────────────
+  // ── FI target portfolio in today's money ─────────────────────────────────
   const targetPortfolioFull = (targetMonthlyIncome * 12) / swr;
 
-  // ── Monthly gap ───────────────────────────────────────────────────────────
+  // ── Monthly gap (today) ───────────────────────────────────────────────────
   const fiGapMonthly = targetMonthlyIncome - currentPassiveMonthly;
   const alreadyFI    = fiGapMonthly <= 0;
 
   // ── Scenario A: pure accumulation, no CPF ────────────────────────────────
-  const yearsA  = alreadyFI ? 0
-    : yearsToFI(investablePortfolio, annualContribution, targetPortfolioFull, annualReturnPct);
+  let yearsA = null;
+  if (alreadyFI) {
+    yearsA = 0;
+  } else if (inf === 0) {
+    yearsA = yearsToFI(investablePortfolio, annualContribution, targetPortfolioFull, annualReturnPct);
+  } else {
+    // Inflation-aware: target NW grows each year
+    let p = investablePortfolio;
+    for (let y = 1; y <= 60; y++) {
+      p = p * (1 + r) + annualContribution;
+      const inflatedTarget = (targetMonthlyIncome * Math.pow(1 + inf, y) * 12) / swr;
+      if (p >= inflatedTarget) { yearsA = y; break; }
+    }
+  }
+
   const fiYearA = yearsA != null ? CURRENT_YEAR + yearsA : null;
 
-  // Implied FI age from current savings rate
-  const impliedFIAge = currentAge != null && yearsA != null
-    ? currentAge + yearsA
+  // Nominal NW target at the projected FI year (in future dollars)
+  const targetPortfolioAtFI = yearsA != null
+    ? (targetMonthlyIncome * Math.pow(1 + inf, yearsA) * 12) / swr
     : null;
+
+  // Implied FI age from current savings rate
+  const impliedFIAge = currentAge != null && yearsA != null ? currentAge + yearsA : null;
 
   // ── Scenario B: with CPF LIFE (kicks in at 65) ───────────────────────────
   let yearsB = null, fiYearB = null, alreadyFIWithCPF = false;
@@ -212,14 +236,14 @@ export function computeFIMetrics({
       if (alreadyFIWithCPF) { yearsB = 0; fiYearB = CURRENT_YEAR; }
     }
     if (!alreadyFIWithCPF && yearsB === null) {
-      const r = annualReturnPct / 100;
       let p = investablePortfolio;
       for (let y = 1; y <= 60; y++) {
         p = p * (1 + r) + annualContribution;
-        const ageAtYear  = currentAge + y;
-        const cpfActive  = ageAtYear >= CPF_PAYOUT_AGE;
-        const effNeed    = cpfActive ? Math.max(0, targetMonthlyIncome - cpfLifePayout) : targetMonthlyIncome;
-        const targetYear = (effNeed * 12) / swr;
+        const ageAtYear     = currentAge + y;
+        const cpfActive     = ageAtYear >= CPF_PAYOUT_AGE;
+        const inflatedMonthly = targetMonthlyIncome * Math.pow(1 + inf, y);
+        const effNeed       = cpfActive ? Math.max(0, inflatedMonthly - cpfLifePayout) : inflatedMonthly;
+        const targetYear    = (effNeed * 12) / swr;
         if (p >= targetYear) { yearsB = y; fiYearB = CURRENT_YEAR + y; break; }
       }
     }
@@ -239,7 +263,7 @@ export function computeFIMetrics({
     if (raw != null) requiredAnnualSavingsForAge = Math.max(0, Math.round(raw));
   }
 
-  // ── Progress % ────────────────────────────────────────────────────────────
+  // ── Progress % (always vs today's target for a stable baseline) ──────────
   const progressPct        = targetPortfolioFull > 0 ? Math.min(1, investablePortfolio / targetPortfolioFull) : 0;
   const progressPctWithCPF = targetPortfolioWithCPF > 0 ? Math.min(1, investablePortfolio / targetPortfolioWithCPF) : 0;
 
@@ -254,6 +278,7 @@ export function computeFIMetrics({
     swrPct,
     retirementAge,
     stopContributionsAtRetirement,
+    inflationPct: inf * 100,
     maxYears: 50,
   });
 
@@ -271,6 +296,7 @@ export function computeFIMetrics({
     alreadyFI,
     // Accumulation scenario (no CPF)
     targetPortfolioFull,
+    targetPortfolioAtFI,   // nominal NW needed at projected FI year
     yearsWithoutCPF: yearsA,
     fiYearWithoutCPF: fiYearA,
     impliedFIAge,
@@ -292,6 +318,8 @@ export function computeFIMetrics({
     retirementAge,
     currentAge,
     stopContributionsAtRetirement,
+    applyInflation,
+    inflationPct: inf * 100,
     // Income-based chart data
     projectionSeries,
   };
