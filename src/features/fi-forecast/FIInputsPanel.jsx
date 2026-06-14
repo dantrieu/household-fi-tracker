@@ -101,6 +101,15 @@ export default function FIInputsPanel() {
     }
   }
 
+  // Inflation preview — show what today's target grows to by FI year
+  const yearsToFI = fi.target_retirement_age != null && fi.current_age != null
+    ? Math.max(1, fi.target_retirement_age - fi.current_age) : null;
+  const inflatedAtFI = yearsToFI && fi.target_monthly_income_sgd
+    ? Math.round(fi.target_monthly_income_sgd * Math.pow(1 + (fi.inflation_rate_pct ?? 2.5) / 100, yearsToFI))
+    : null;
+  const fiYear = fi.current_age != null && fi.target_retirement_age != null
+    ? new Date().getFullYear() + (fi.target_retirement_age - fi.current_age) : null;
+
   return (
     <Card title="Inputs">
       <div className="flex flex-col gap-5">
@@ -109,7 +118,7 @@ export default function FIInputsPanel() {
         <div className="grid grid-cols-2 gap-4">
           <InputRow
             label="Target monthly passive income"
-            hint="What you need per month in retirement (SGD)."
+            hint="Enter in today's dollars — inflation is accounted for below."
           >
             <NumberInput
               value={fi.target_monthly_income_sgd}
@@ -134,6 +143,45 @@ export default function FIInputsPanel() {
               suffix="%"
             />
           </InputRow>
+        </div>
+
+        {/* ── Inflation — tied to the target income above ─────────────────── */}
+        <div className="rounded-xl border border-amber-100 bg-amber-50/30 px-3.5 py-3 flex flex-col gap-2.5">
+          <div className="flex items-start gap-4">
+            <div className="w-36 flex-shrink-0">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+                Inflation rate
+              </label>
+              <NumberInput
+                value={fi.inflation_rate_pct ?? 2.5}
+                onChange={(v) => setFiSetting('inflation_rate_pct', v)}
+                min={0}
+                max={20}
+                step={0.5}
+                suffix="%"
+              />
+            </div>
+            <label className="flex items-start gap-2.5 cursor-pointer select-none mt-5">
+              <input
+                type="checkbox"
+                checked={fi.apply_inflation ?? true}
+                onChange={(e) => setFiSetting('apply_inflation', e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600
+                           focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
+              />
+              <div>
+                <p className="text-xs font-medium text-gray-700">Account for inflation in projection</p>
+                <p className="text-xs text-gray-400 leading-snug mt-0.5">
+                  Show actual nominal amount needed at FI year
+                </p>
+              </div>
+            </label>
+          </div>
+          <p className="text-xs text-gray-400 leading-snug">
+            {(fi.apply_inflation ?? true) && inflatedAtFI
+              ? `S$${(fi.target_monthly_income_sgd ?? 0).toLocaleString('en-SG')}/mo today → ~S$${inflatedAtFI.toLocaleString('en-SG')}/mo needed at ${fiYear ?? 'FI year'} (${fi.inflation_rate_pct ?? 2.5}% p.a.). Projection targets adjust each year.`
+              : 'Target income stays flat in today\'s dollars throughout the projection.'}
+          </p>
         </div>
 
         {/* ── Current age + Annual return ──────────────────────────────────── */}
@@ -161,43 +209,6 @@ export default function FIInputsPanel() {
               suffix="%"
             />
           </InputRow>
-        </div>
-
-        {/* ── Inflation ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4">
-          <InputRow
-            label="Inflation rate"
-            hint="Singapore CPI ~2–3% p.a."
-          >
-            <NumberInput
-              value={fi.inflation_rate_pct ?? 2.5}
-              onChange={(v) => setFiSetting('inflation_rate_pct', v)}
-              min={0}
-              max={20}
-              step={0.5}
-              suffix="%"
-            />
-          </InputRow>
-
-          <div className="flex flex-col justify-end pb-1">
-            <label className="flex items-start gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={fi.apply_inflation ?? true}
-                onChange={(e) => setFiSetting('apply_inflation', e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600
-                           focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
-              />
-              <div>
-                <p className="text-xs font-medium text-gray-700">Apply inflation to projection</p>
-                <p className="text-xs text-gray-400 leading-snug mt-0.5">
-                  {(fi.apply_inflation ?? true)
-                    ? 'Target income grows each year — shows nominal NW needed at FI.'
-                    : 'Target income stays flat in today\'s dollars.'}
-                </p>
-              </div>
-            </label>
-          </div>
         </div>
 
         {/* ══ Linked: Annual savings ↔ Retirement age ════════════════════════

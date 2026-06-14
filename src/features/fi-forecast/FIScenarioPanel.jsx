@@ -30,6 +30,9 @@ export default function FIScenarioPanel() {
   const {
     investablePortfolio,
     targetPortfolioFull,
+    targetPortfolioAtFI,
+    applyInflation,
+    inflationPct,
     progressPct,
     fiYearWithoutCPF,
     yearsWithoutCPF,
@@ -42,6 +45,10 @@ export default function FIScenarioPanel() {
     fiYearWithCPF,
     cpfImpactYears,
   } = metrics;
+
+  // When inflation is applied, show the nominal target at the projected FI year
+  const displayTarget      = applyInflation && targetPortfolioAtFI ? targetPortfolioAtFI : targetPortfolioFull;
+  const displayProgressPct = displayTarget > 0 ? Math.min(1, investablePortfolio / displayTarget) : 0;
 
   const currentYear = new Date().getFullYear();
 
@@ -86,15 +93,15 @@ export default function FIScenarioPanel() {
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
             <span>Portfolio progress to FI target</span>
             <span className="tabular-nums font-medium">
-              {formatSGD(investablePortfolio)} / {formatSGD(targetPortfolioFull)}
+              {formatSGD(investablePortfolio)} / {formatSGD(displayTarget)}
             </span>
           </div>
           <ProgressBar
-            pct={progressPct}
-            color={progressPct >= 1 ? 'bg-green-500' : 'bg-blue-400'}
+            pct={displayProgressPct}
+            color={displayProgressPct >= 1 ? 'bg-green-500' : 'bg-blue-400'}
           />
           <p className="text-xs text-gray-400 mt-1 text-right">
-            {formatPct(progressPct)} of target reached
+            {formatPct(displayProgressPct)} of target reached
           </p>
         </div>
 
@@ -116,8 +123,11 @@ export default function FIScenarioPanel() {
 
         {/* ── Note ────────────────────────────────────────────────────────────── */}
         <p className="text-xs text-gray-400 leading-relaxed">
-          Target portfolio: <strong>{formatSGD(targetPortfolioFull)}</strong> ({swrPct ?? 4}% SWR on annual expenses).
-          Does not adjust for inflation or sequence-of-returns risk. Treat as directional guidance.
+          Target portfolio: <strong>{formatSGD(displayTarget)}</strong>
+          {applyInflation && targetPortfolioAtFI && fiYearWithoutCPF
+            ? ` (nominal at ${fiYearWithoutCPF}, ${inflationPct}% p.a. inflation applied · today's equivalent: ${formatSGD(targetPortfolioFull)})`
+            : ` (${swrPct ?? 4}% SWR on today's income target)`}.
+          Treat as directional guidance.
         </p>
       </div>
     </Card>

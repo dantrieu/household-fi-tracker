@@ -111,7 +111,13 @@ export default function FIProjectionChart() {
     stopContributionsAtRetirement,
     applyInflation,
     inflationPct,
+    yearsWithoutCPF,
   } = metrics;
+
+  // Inflated monthly target at projected FI year (for legend annotation)
+  const targetMonthlyAtFI = applyInflation && yearsWithoutCPF
+    ? Math.round(targetMonthlyIncome * Math.pow(1 + inflationPct / 100, yearsWithoutCPF))
+    : null;
 
   // Nominal target NW for the portfolio reference line
   const targetPortfolioRef = applyInflation && targetPortfolioAtFI
@@ -338,9 +344,9 @@ export default function FIProjectionChart() {
         {cpfLifePayout > 0 && <span>🟣 Purple line = income + CPF LIFE from 65 (right)</span>}
         <span>— Grey dashed = target portfolio (nominal)</span>
         <span>
-          {applyInflation
-            ? `— Orange dashed = target income rising at ${inflationPct}%/yr`
-            : '— Orange dashed = target monthly income'}
+          {applyInflation && targetMonthlyAtFI
+            ? `↗ Orange dashed = target income rising ${inflationPct}%/yr (${formatSGD(targetMonthlyIncome)}/mo today → ~${formatSGD(targetMonthlyAtFI)}/mo at FI year)`
+            : '— Orange dashed = target monthly income (flat)'}
         </span>
       </div>
     </Card>
