@@ -45,7 +45,7 @@ function PassphraseInput({ value, onChange, placeholder = 'e.g. my-house-tracker
 
 // ─── Save tab ────────────────────────────────────────────────────────────────
 
-function SaveTab() {
+function SaveTab({ onSyncEnabled }) {
   const state = useStore();
   const [passphrase, setPassphrase] = useState('');
   // null | 'checking' | 'newSlot' | 'saving' | 'ok' | 'error'
@@ -90,8 +90,9 @@ function SaveTab() {
     setStatus('saving');
     setErrorMsg('');
     try {
-      await saveToCloud(phrase, state);
+      const savedAt = await saveToCloud(phrase, state);
       setStatus('ok');
+      onSyncEnabled?.(phrase, savedAt);
     } catch (err) {
       setErrorMsg(err.message);
       setStatus('error');
@@ -120,9 +121,10 @@ function SaveTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Choose a passphrase you'll remember. Use it to reload your data on any device.
-        Saving again with the same passphrase <strong>overwrites</strong> the previous save.
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Choose a passphrase you'll remember. Saving enables <strong>auto-sync</strong> on
+        this device — future changes push automatically, no need to save again.
+        Use the same passphrase on another device to pull this data down and sync it too.
       </p>
 
       <div className="space-y-1.5">
@@ -219,7 +221,7 @@ function SaveTab() {
 
 // ─── Load tab ────────────────────────────────────────────────────────────────
 
-function LoadTab({ onClose }) {
+function LoadTab({ onClose, onSyncEnabled }) {
   const restoreFromCloud = useStore((s) => s.restoreFromCloud);
   const [passphrase, setPassphrase] = useState('');
   const [status, setStatus]         = useState(null);
@@ -236,9 +238,11 @@ function LoadTab({ onClose }) {
     setStatus('loading');
     setErrorMsg('');
     try {
-      const data = await loadFromCloud(passphrase.trim());
+      const phrase = passphrase.trim();
+      const data = await loadFromCloud(phrase);
       restoreFromCloud(data);
       setStatus('ok');
+      onSyncEnabled?.(phrase, data.saved_at);
       setTimeout(onClose, 1500);
     } catch (err) {
       setErrorMsg(err.message);
@@ -249,9 +253,10 @@ function LoadTab({ onClose }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         Enter the passphrase you used when saving. Your current data will be
-        <strong className="text-red-600"> replaced</strong> with the cloud copy.
+        <strong className="text-red-600 dark:text-red-400"> replaced</strong> with the cloud copy,
+        and this device will auto-sync with it from now on.
       </p>
 
       <div className="space-y-1.5">
@@ -299,7 +304,31 @@ function LoadTab({ onClose }) {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
-export default function SaveRestoreModal({ onClose }) {
+function SyncStatusBanner({ sync }) {
+  if (!sync?.enabled) return null;
+
+  const label = sync.status === 'syncing' ? 'Syncing…'
+    : sync.status === 'error' ? 'Sync error — will retry'
+    : sync.lastSyncedAt ? `Last synced ${new Date(sync.lastSyncedAt).toLocaleTimeString()}`
+    : 'Synced';
+
+  return (
+    <div className="mx-5 mt-4 rounded-lg border border-blue-100 dark:border-blue-900/40
+                    bg-blue-50 dark:bg-blue-900/20 px-3 py-2 flex items-center justify-between gap-2">
+      <span className="text-xs text-blue-800 dark:text-blue-300">
+        ☁️ Auto-sync is on for this device — {label}
+      </span>
+      <button
+        onClick={sync.disableSync}
+        className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+      >
+        Turn off
+      </button>
+    </div>
+  );
+}
+
+export default function SaveRestoreModal({ onClose, sync }) {
   const [tab, setTab] = useState('save');
 
   return (
@@ -309,14 +338,16 @@ export default function SaveRestoreModal({ onClose }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* Panel */}
-      <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl
+      <div className="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl
                       overflow-hidden max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
           <div>
-            <h2 className="font-semibold text-gray-900 text-base">💾 Save / Restore Data</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Optional — your data stays in your browser by default</p>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-base">💾 Save / Restore Data</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {sync?.enabled ? 'Auto-sync is on — this is for manual override only' : 'Save once to enable auto-sync across your devices'}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -327,8 +358,10 @@ export default function SaveRestoreModal({ onClose }) {
           </button>
         </div>
 
+        <SyncStatusBanner sync={sync} />
+
         {/* Tabs */}
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-gray-100 dark:border-gray-700 mt-4">
           {[['save', '💾 Save'], ['load', '📥 Restore']].map(([id, label]) => (
             <button
               key={id}
@@ -336,8 +369,8 @@ export default function SaveRestoreModal({ onClose }) {
               className={[
                 'flex-1 py-2.5 text-sm font-medium transition-colors',
                 tab === id
-                  ? 'text-green-700 border-b-2 border-green-600'
-                  : 'text-gray-500 hover:text-gray-700',
+                  ? 'text-green-700 dark:text-green-400 border-b-2 border-green-600'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
               ].join(' ')}
             >
               {label}
@@ -347,7 +380,9 @@ export default function SaveRestoreModal({ onClose }) {
 
         {/* Tab content */}
         <div className="p-5">
-          {tab === 'save' ? <SaveTab /> : <LoadTab onClose={onClose} />}
+          {tab === 'save'
+            ? <SaveTab onSyncEnabled={sync?.enableSync} />
+            : <LoadTab onClose={onClose} onSyncEnabled={sync?.enableSync} />}
         </div>
       </div>
     </div>

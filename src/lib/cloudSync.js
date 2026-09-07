@@ -7,11 +7,14 @@
 /**
  * Save the relevant parts of the store to Vercel KV.
  * Live prices are stripped — they'll be re-fetched on next load.
+ * Returns the `saved_at` timestamp written, so callers can track it
+ * (e.g. auto-sync uses it as a watermark to detect newer cloud data).
  */
 export async function saveToCloud(passphrase, state) {
+  const saved_at = new Date().toISOString();
   const payload = {
     v: 1,
-    saved_at: new Date().toISOString(),
+    saved_at,
     net_worth: state.net_worth,
     fi_settings: state.fi_settings,
     snapshots: state.snapshots,
@@ -35,6 +38,8 @@ export async function saveToCloud(passphrase, state) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Save failed (${res.status})`);
   }
+
+  return saved_at;
 }
 
 /**

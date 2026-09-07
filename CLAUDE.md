@@ -33,7 +33,7 @@ Deployed on **Vercel** (auto-deploy from GitHub master).
 
 ## Current Version
 
-**v0.8.7** · 12 Jun 2026, 18:38 SGT
+**v0.8.14** · 07 Sept 2026, 22:10 SGT
 
 Always bump `src/version.js` (APP_VERSION + BUILD_DATE) with every commit.
 The footer displays this so the user can confirm Vercel deployed successfully.
@@ -89,8 +89,12 @@ src/
     storage.js                  ← migrateState(), buildV1State() with seed data
     api.js                      ← fetchStockPrice, fetchCryptoPrice, fetchFxRate, resolveYahooTicker
     cloudSync.js                ← saveToCloud, loadFromCloud, deleteFromCloud, checkCloudExists
+    autoSync.js                 ← per-device passphrase + sync watermark (localStorage)
     format.js                   ← formatSGD, formatPct, formatDelta, formatDeltaPct
     fi.js                       ← estimateCpfLifePayout(), CPF-65 gating, projectionSeries
+  hooks/
+    useDarkMode.js               ← dark mode toggle, persisted + system-preference default
+    useAutoSync.js               ← cross-device auto-save/auto-load engine
   store/
     useStore.js                 ← Zustand store + all actions + selectors
 api/
@@ -190,7 +194,7 @@ Three rows: **Total Net Worth** (bold) / Total Investable NW / Total NW, Excl. C
 
 ---
 
-## Cloud Save / Restore
+## Cloud Save / Restore + Auto-Sync
 
 - Passphrase-keyed storage on **Upstash Redis** via Vercel serverless functions
 - Passphrase shown by default (not masked)
@@ -198,6 +202,18 @@ Three rows: **Total Net Worth** (bold) / Total Investable NW / Total NW, Excl. C
 - Load replaces all local data (requires two-click confirm)
 - Delete requires passphrase + two-click confirm
 - Live prices stripped on save (re-fetched on next load)
+- **`/api/*` functions only run under `vercel dev` / on Vercel** — plain `vite dev` (the local dev server) 404s on save/load. Test cloud sync on the deployed Vercel URL, not localhost.
+
+### Auto-sync (multi-device)
+- `src/hooks/useAutoSync.js` — the sync engine; mounted once in `NavBar.jsx`
+- `src/lib/autoSync.js` — per-device localStorage helpers (remembered passphrase + sync watermark, separate from the Zustand-persisted app schema)
+- First successful manual Save or Load remembers the passphrase on that device (`enableSync`) — auto-sync turns on from then on, no more manual saves needed
+- **Push**: every store change (`last_modified` change) debounces 2s, then pushes to cloud via `saveToCloud`
+- **Pull**: on mount, on window focus/tab visibility change, and every 45s while open, checks the cloud's `saved_at` against a local watermark; pulls down via `restoreFromCloud` if the cloud is newer (i.e. another device pushed since this device last synced)
+- Watermark (not `last_modified`) is what's compared cross-device — avoids a pull immediately re-triggering a redundant push and vice versa
+- **Known limitation**: simultaneous edits on two devices within the same ~2s window is last-write-wins (no merge/conflict UI) — acceptable for a single-user household app, not addressed
+- NavBar shows a "💾 Save / Load" button when sync is off, or a "☁️ Synced / 🔄 Syncing… / ⚠️ Sync error" pill when on — clicking either opens the same modal; the modal shows a banner with a "Turn off" link when sync is active
+- Turning sync off (`disableSync`) forgets the passphrase + watermark locally — does not delete cloud data
 
 ---
 

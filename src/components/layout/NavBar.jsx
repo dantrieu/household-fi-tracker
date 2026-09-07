@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import SaveRestoreModal from '../SaveRestoreModal';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import { useAutoSync } from '../../hooks/useAutoSync';
 
 const LINKS = [
   { to: '/',            label: 'Net Worth',  short: 'Net Worth'  },
@@ -9,9 +10,19 @@ const LINKS = [
   { to: '/fi-forecast', label: 'FI Forecast', short: 'FI'        },
 ];
 
+const SYNC_META = {
+  syncing: { icon: '🔄', label: 'Syncing…' },
+  synced:  { icon: '☁️', label: 'Synced' },
+  error:   { icon: '⚠️', label: 'Sync error' },
+  idle:    { icon: '☁️', label: 'Synced' },
+};
+
 export default function NavBar() {
   const [showCloud, setShowCloud] = useState(false);
   const [dark, setDark] = useDarkMode();
+  const sync = useAutoSync();
+
+  const syncMeta = SYNC_META[sync.status] ?? SYNC_META.idle;
 
   return (
     <>
@@ -59,23 +70,48 @@ export default function NavBar() {
               {dark ? '☀️' : '🌙'}
             </button>
 
-            {/* Save / Load — icon + label on desktop, icon only on mobile */}
-            <button
-              onClick={() => setShowCloud(true)}
-              title="Save / Load data"
-              className="px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                         bg-green-600 text-white hover:bg-green-700
-                         transition-colors flex items-center gap-1 sm:gap-1.5"
-            >
-              💾
-              <span className="hidden sm:inline">Save / Load</span>
-            </button>
+            {sync.enabled ? (
+              /* Sync status — click opens the modal for manual controls */
+              <button
+                onClick={() => setShowCloud(true)}
+                title={
+                  sync.lastSyncedAt
+                    ? `Auto-sync on · last synced ${new Date(sync.lastSyncedAt).toLocaleTimeString()}`
+                    : 'Auto-sync on'
+                }
+                className="px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                           text-gray-500 dark:text-gray-400
+                           hover:text-gray-800 dark:hover:text-gray-200
+                           hover:bg-gray-100 dark:hover:bg-gray-800
+                           transition-colors flex items-center gap-1 sm:gap-1.5"
+              >
+                {syncMeta.icon}
+                <span className="hidden sm:inline">{syncMeta.label}</span>
+              </button>
+            ) : (
+              /* First-time setup — save once to enable auto-sync */
+              <button
+                onClick={() => setShowCloud(true)}
+                title="Save / Load data"
+                className="px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                           bg-green-600 text-white hover:bg-green-700
+                           transition-colors flex items-center gap-1 sm:gap-1.5"
+              >
+                💾
+                <span className="hidden sm:inline">Save / Load</span>
+              </button>
+            )}
           </div>
 
         </div>
       </header>
 
-      {showCloud && <SaveRestoreModal onClose={() => setShowCloud(false)} />}
+      {showCloud && (
+        <SaveRestoreModal
+          onClose={() => setShowCloud(false)}
+          sync={sync}
+        />
+      )}
     </>
   );
 }
