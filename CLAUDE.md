@@ -33,7 +33,7 @@ Deployed on **Vercel** (auto-deploy from GitHub master).
 
 ## Current Version
 
-**v0.8.16** · 07 Sept 2026, 22:33 SGT
+**v0.8.17** · 07 Sept 2026, 22:57 SGT
 
 Always bump `src/version.js` (APP_VERSION + BUILD_DATE) with every commit.
 The footer displays this so the user can confirm Vercel deployed successfully.
@@ -224,6 +224,22 @@ Three rows: **Total Net Worth** (bold) / Total Investable NW / Total NW, Excl. C
 - Scenarios panel
 - Charts: portfolio growth vs FI target, passive income over time
 
+### FI year is a rolling 12-month period, not a calendar year
+`computeFIMetrics`/`buildProjectionSeries` step in whole `annual_savings_sgd` + one year's
+return per loop, anchored to *today*, not Jan–Dec. So "FI in 3 years" from a September
+session lands ~September, not some point across calendar year N+3. This is actually
+correct, not a bug: a rolling 12-month window naturally captures one full annual cycle
+(including a once-a-year bonus, whenever in the year it lands) without double-counting or
+missing it — see the Decisions Log entry below before trying to "fix" this by pro-rating a
+partial first year, which would distort the number for anyone with front/back-loaded
+contributions (e.g. bonus already received earlier in the year).
+
+Headline year displays (FIMetricsCards, FIScenarioPanel, CPFLifePanel, the FIInputsPanel
+inflation preview) use `formatFIYear()` from `src/lib/format.js` to show "Sep 2029" instead
+of a bare "2029", making the anchor month explicit. Chart axes/reference-line labels
+(FIProjectionChart, PortfolioValueChart, PassiveIncomeChart) intentionally keep bare years —
+consistent with their own axis ticks, and charts are read as trends, not precise dates.
+
 ---
 
 ## Design Conventions
@@ -253,6 +269,7 @@ Three rows: **Total Net Worth** (bold) / Total Investable NW / Total NW, Excl. C
 | Pie chart defaults to grouped | "All" view with many categories was visually messy; grouped (Investable/Non-invest.) is the default, users can toggle off |
 | Passphrase visible by default | Less friction; security notice already warns about risk |
 | CPF LIFE auto-calculated | Removed manual input field — formula `FRS × 1.035^yearsTo55 × 0.0073` is accurate enough and reduces user error |
+| FI year stays a rolling 12-month projection (relabeled, not recalculated) | User (whose `annual_savings_sgd` includes an annual bonus) flagged that FI-year projections looked calendar-year-aligned when they're not. Considered pro-rating a partial first year to align to real Dec 31 boundaries, but traced through the math and found the rolling window already handles a once-a-year bonus correctly regardless of timing — pro-rating would have *introduced* a distortion for front-loaded contributions, not fixed one. Went with relabeling ("Sep 2029" instead of "2029") over changing the calculation |
 
 ---
 

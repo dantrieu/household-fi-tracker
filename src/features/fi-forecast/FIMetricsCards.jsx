@@ -1,5 +1,5 @@
 import useStore, { selectors } from '../../store/useStore';
-import { formatSGD, formatPct } from '../../lib/format';
+import { formatSGD, formatPct, formatFIYear } from '../../lib/format';
 
 function MetricCard({ label, value, sub, highlight = false, warn = false, muted = false }) {
   return (
@@ -89,7 +89,7 @@ export default function FIMetricsCards() {
         value={
           !ready                ? '—'
           : alreadyFI           ? String(currentYear)
-          : fiYearWithoutCPF    ? String(fiYearWithoutCPF)
+          : fiYearWithoutCPF    ? formatFIYear(fiYearWithoutCPF)
           : '> 40 yrs'
         }
         sub={

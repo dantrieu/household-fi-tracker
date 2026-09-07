@@ -1,6 +1,7 @@
 import { NumericFormat } from 'react-number-format';
 import useStore, { selectors } from '../../store/useStore';
 import { yearsToFI, requiredAnnualSavings } from '../../lib/fi';
+import { formatFIYear } from '../../lib/format';
 import Card from '../../components/ui/Card';
 
 function InputRow({ label, hint, children }) {
@@ -197,7 +198,7 @@ export default function FIInputsPanel() {
           </div>
           <p className="text-xs text-gray-400 leading-snug">
             {(fi.apply_inflation ?? true) && inflatedAtFI
-              ? `S$${(fi.target_monthly_income_sgd ?? 0).toLocaleString('en-SG')}/mo today → ~S$${inflatedAtFI.toLocaleString('en-SG')}/mo needed at ${fiYear ?? 'FI year'} (${fi.inflation_rate_pct ?? 2.5}% p.a.). Projection targets adjust each year.`
+              ? `S$${(fi.target_monthly_income_sgd ?? 0).toLocaleString('en-SG')}/mo today → ~S$${inflatedAtFI.toLocaleString('en-SG')}/mo needed at ${fiYear ? formatFIYear(fiYear) : 'FI year'} (${fi.inflation_rate_pct ?? 2.5}% p.a.). Projection targets adjust each year.`
               : 'Target income stays flat in today\'s dollars throughout the projection.'}
           </p>
         </div>

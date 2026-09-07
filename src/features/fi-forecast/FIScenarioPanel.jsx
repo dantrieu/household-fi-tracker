@@ -1,5 +1,5 @@
 import useStore, { selectors } from '../../store/useStore';
-import { formatSGD, formatPct } from '../../lib/format';
+import { formatSGD, formatPct, formatFIYear } from '../../lib/format';
 import Card from '../../components/ui/Card';
 
 function ProgressBar({ pct, color = 'bg-green-500' }) {
@@ -70,7 +70,7 @@ export default function FIScenarioPanel() {
               Projected FI Year
             </p>
             <p className="text-4xl font-bold text-gray-900 tabular-nums">
-              {alreadyFI ? '🎉 Now' : fiYearWithoutCPF ? String(fiYearWithoutCPF) : '> 40 yrs'}
+              {alreadyFI ? '🎉 Now' : fiYearWithoutCPF ? formatFIYear(fiYearWithoutCPF) : '> 40 yrs'}
             </p>
             {!alreadyFI && yearsWithoutCPF != null && (
               <p className="text-sm text-gray-500 mt-1">{yearsWithoutCPF} years from today</p>
@@ -81,7 +81,7 @@ export default function FIScenarioPanel() {
           {cpfImpactYears > 0 && fiYearWithCPF && (
             <div className="mb-1 flex flex-col items-start">
               <span className="text-xs text-blue-600 font-semibold bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
-                +CPF → {fiYearWithCPF} ({cpfImpactYears} yrs earlier)
+                +CPF → {formatFIYear(fiYearWithCPF)} ({cpfImpactYears} yrs earlier)
               </span>
               <span className="text-xs text-gray-400 mt-1">Est. CPF LIFE {formatSGD(cpfLifePayout)}/mo from 65</span>
             </div>
@@ -125,7 +125,7 @@ export default function FIScenarioPanel() {
         <p className="text-xs text-gray-400 leading-relaxed">
           Target portfolio: <strong>{formatSGD(displayTarget)}</strong>
           {applyInflation && targetPortfolioAtFI && fiYearWithoutCPF
-            ? ` (nominal at ${fiYearWithoutCPF}, ${inflationPct}% p.a. inflation applied · today's equivalent: ${formatSGD(targetPortfolioFull)})`
+            ? ` (nominal at ${formatFIYear(fiYearWithoutCPF)}, ${inflationPct}% p.a. inflation applied · today's equivalent: ${formatSGD(targetPortfolioFull)})`
             : ` (${swrPct ?? 4}% SWR on today's income target)`}.
           Treat as directional guidance.
         </p>

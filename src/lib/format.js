@@ -77,3 +77,15 @@ export function parseNumber(str) {
   const cleaned = String(str).replace(/[^0-9.-]/g, '');
   return cleaned === '' ? NaN : parseFloat(cleaned);
 }
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/**
+ * Format a projected FI year as "Sep 2029" — FI-year projections are rolling
+ * 12-month periods anchored to today's month, not Jan–Dec calendar years, so
+ * a bare "2029" implies more precision (and a different month) than intended.
+ */
+export function formatFIYear(year) {
+  if (year == null) return null;
+  return `${MONTH_NAMES[new Date().getMonth()]} ${year}`;
+}

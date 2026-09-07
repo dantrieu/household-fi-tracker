@@ -1,5 +1,5 @@
 import useStore, { selectors } from '../../store/useStore';
-import { formatSGD } from '../../lib/format';
+import { formatSGD, formatFIYear } from '../../lib/format';
 import Card from '../../components/ui/Card';
 
 export default function CPFLifePanel() {
@@ -112,7 +112,7 @@ export default function CPFLifePanel() {
                 </p>
                 {cpfImpactYears != null && cpfImpactYears > 0 && fiYearWithoutCPF && fiYearWithCPF && (
                   <p className="text-xs text-green-700/80">
-                    Brings your FI date from {fiYearWithoutCPF} to {fiYearWithCPF}
+                    Brings your FI date from {formatFIYear(fiYearWithoutCPF)} to {formatFIYear(fiYearWithCPF)}
                     &nbsp;(+{cpfImpactYears} yr{cpfImpactYears !== 1 ? 's' : ''} earlier).
                   </p>
                 )}
