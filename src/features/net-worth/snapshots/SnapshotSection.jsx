@@ -189,11 +189,13 @@ export default function SnapshotSection() {
   const state = useStore();
   const [mode, setMode] = useState('current');
 
+  // Muted "tab" look — deliberately distinct from the solid-green Save
+  // buttons below, so these read as view switches, not actions.
   const tabCls = (id) => [
     'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
     mode === id
-      ? 'bg-green-600 text-white'
-      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100',
+      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
   ].join(' ');
 
   return (

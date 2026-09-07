@@ -33,7 +33,7 @@ Deployed on **Vercel** (auto-deploy from GitHub master).
 
 ## Current Version
 
-**v0.8.15** · 07 Sept 2026, 22:18 SGT
+**v0.8.16** · 07 Sept 2026, 22:33 SGT
 
 Always bump `src/version.js` (APP_VERSION + BUILD_DATE) with every commit.
 The footer displays this so the user can confirm Vercel deployed successfully.
