@@ -33,7 +33,7 @@ Deployed on **Vercel** (auto-deploy from GitHub master).
 
 ## Current Version
 
-**v0.8.14** · 07 Sept 2026, 22:10 SGT
+**v0.8.15** · 07 Sept 2026, 22:18 SGT
 
 Always bump `src/version.js` (APP_VERSION + BUILD_DATE) with every commit.
 The footer displays this so the user can confirm Vercel deployed successfully.
@@ -209,7 +209,7 @@ Three rows: **Total Net Worth** (bold) / Total Investable NW / Total NW, Excl. C
 - `src/lib/autoSync.js` — per-device localStorage helpers (remembered passphrase + sync watermark, separate from the Zustand-persisted app schema)
 - First successful manual Save or Load remembers the passphrase on that device (`enableSync`) — auto-sync turns on from then on, no more manual saves needed
 - **Push**: every store change (`last_modified` change) debounces 2s, then pushes to cloud via `saveToCloud`
-- **Pull**: on mount, on window focus/tab visibility change, and every 45s while open, checks the cloud's `saved_at` against a local watermark; pulls down via `restoreFromCloud` if the cloud is newer (i.e. another device pushed since this device last synced)
+- **Pull**: on mount, on window focus/tab becoming visible, and every 45s while the tab is actually visible (polling pauses when the tab is backgrounded/hidden), checks the cloud's `saved_at` against a local watermark; pulls down via `restoreFromCloud` if the cloud is newer (i.e. another device pushed since this device last synced)
 - Watermark (not `last_modified`) is what's compared cross-device — avoids a pull immediately re-triggering a redundant push and vice versa
 - **Known limitation**: simultaneous edits on two devices within the same ~2s window is last-write-wins (no merge/conflict UI) — acceptable for a single-user household app, not addressed
 - NavBar shows a "💾 Save / Load" button when sync is off, or a "☁️ Synced / 🔄 Syncing… / ⚠️ Sync error" pill when on — clicking either opens the same modal; the modal shows a banner with a "Turn off" link when sync is active

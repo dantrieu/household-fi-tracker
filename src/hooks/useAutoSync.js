@@ -16,8 +16,9 @@ const POLL_INTERVAL_MS = 45_000;
  * Cross-device auto-sync. When a passphrase is remembered on this device:
  *  - every store change is pushed to the cloud a couple seconds after
  *    the user stops editing
- *  - on mount, on window focus/visibility, and on a 45s poll, the cloud
- *    is checked for a newer save (from another device) and pulled down
+ *  - on mount, on window focus/tab becoming visible, and on a 45s poll
+ *    that only runs while the tab is visible, the cloud is checked for
+ *    a newer save (from another device) and pulled down
  *
  * "Newer" is tracked via a local watermark (the last-known cloud `saved_at`),
  * not by comparing against `last_modified` directly — this avoids a pull
@@ -95,26 +96,34 @@ export function useAutoSync() {
     };
   }, [passphrase, pushNow]);
 
-  // Pull on focus / tab becoming visible
+  // Pull on focus / tab becoming visible, and poll only while the tab is
+  // actually visible — no network activity while it's in the background.
   useEffect(() => {
     if (!passphrase) return;
-    function onWake() {
-      if (document.visibilityState === 'hidden') return;
-      pullIfNewer(passphrase);
+    let intervalId = null;
+
+    function startPolling() {
+      if (intervalId) return;
+      intervalId = setInterval(() => pullIfNewer(passphrase), POLL_INTERVAL_MS);
     }
+    function stopPolling() {
+      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    }
+    function onWake() {
+      if (document.visibilityState === 'hidden') { stopPolling(); return; }
+      pullIfNewer(passphrase);
+      startPolling();
+    }
+
     window.addEventListener('focus', onWake);
     document.addEventListener('visibilitychange', onWake);
+    if (document.visibilityState !== 'hidden') startPolling();
+
     return () => {
       window.removeEventListener('focus', onWake);
       document.removeEventListener('visibilitychange', onWake);
+      stopPolling();
     };
-  }, [passphrase, pullIfNewer]);
-
-  // Background poll while the tab is open
-  useEffect(() => {
-    if (!passphrase) return;
-    const id = setInterval(() => pullIfNewer(passphrase), POLL_INTERVAL_MS);
-    return () => clearInterval(id);
   }, [passphrase, pullIfNewer]);
 
   /** Called after a manual Save/Load succeeds — enables auto-sync from then on. */
