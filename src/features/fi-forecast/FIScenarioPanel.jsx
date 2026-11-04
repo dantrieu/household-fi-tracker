@@ -1,14 +1,79 @@
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import useStore, { selectors } from '../../store/useStore';
 import { formatSGD, formatPct, formatFIYear } from '../../lib/format';
 import Card from '../../components/ui/Card';
 
-function ProgressBar({ pct, color = 'bg-green-500' }) {
+const REACHED_COLOR   = '#3b82f6'; // blue while in progress (matches the old bar)
+const COMPLETE_COLOR  = '#22c55e'; // green once the target is reached
+const REMAINING_COLOR = '#94a3b8'; // slate — readable in light and dark
+
+function ProgressTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const { name, value } = payload[0].payload;
   return (
-    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-      <div
-        className={`h-2 rounded-full transition-all duration-500 ${color}`}
-        style={{ width: `${Math.min(100, (pct ?? 0) * 100).toFixed(1)}%` }}
-      />
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-sm">
+      <p className="font-semibold text-gray-800">{name}</p>
+      <p className="text-gray-600 tabular-nums">{formatSGD(value)}</p>
+    </div>
+  );
+}
+
+/** Donut showing how much of the FI target portfolio has been reached. */
+function ProgressPie({ current, target, pct }) {
+  const reached   = Math.min(current, target);
+  const remaining = Math.max(0, target - current);
+  const done      = pct >= 1;
+  const reachedColor = done ? COMPLETE_COLOR : REACHED_COLOR;
+
+  const data = [
+    { name: 'Current portfolio', value: reached,   color: reachedColor },
+    ...(remaining > 0 ? [{ name: 'Remaining to target', value: remaining, color: REMAINING_COLOR }] : []),
+  ];
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-36 h-36 shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              cx="50%" cy="50%"
+              innerRadius={44} outerRadius={64}
+              startAngle={90} endAngle={-270}
+              paddingAngle={remaining > 0 && reached > 0 ? 2 : 0}
+              stroke="none"
+            >
+              {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Pie>
+            <Tooltip content={<ProgressTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        {/* Centre label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-xl font-bold tabular-nums text-gray-900">{formatPct(pct)}</span>
+          <span className="text-[11px] text-gray-400">of target</span>
+        </div>
+      </div>
+
+      {/* Legend with amounts */}
+      <div className="flex flex-col gap-2.5 text-sm min-w-0">
+        <div className="flex items-start gap-2">
+          <span className="mt-1.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ background: reachedColor }} />
+          <div>
+            <p className="text-xs text-gray-500">Current portfolio</p>
+            <p className="font-semibold tabular-nums text-gray-900">{formatSGD(current)}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <span className="mt-1.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ background: REMAINING_COLOR }} />
+          <div>
+            <p className="text-xs text-gray-500">Remaining to target</p>
+            <p className="font-semibold tabular-nums text-gray-900">{formatSGD(remaining)}</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 tabular-nums">Target {formatSGD(target)}</p>
+      </div>
     </div>
   );
 }
@@ -90,19 +155,16 @@ export default function FIScenarioPanel() {
 
         {/* ── Portfolio progress ──────────────────────────────────────────────── */}
         <div>
-          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-            <span>Portfolio progress to FI target</span>
-            <span className="tabular-nums font-medium">
-              {formatSGD(investablePortfolio)} / {formatSGD(displayTarget)}
-            </span>
-          </div>
-          <ProgressBar
-            pct={displayProgressPct}
-            color={displayProgressPct >= 1 ? 'bg-green-500' : 'bg-blue-400'}
-          />
-          <p className="text-xs text-gray-400 mt-1 text-right">
-            {formatPct(displayProgressPct)} of target reached
-          </p>
+          <p className="text-xs text-gray-500 mb-2">Portfolio progress to FI target</p>
+          {displayTarget > 0 ? (
+            <ProgressPie
+              current={investablePortfolio}
+              target={displayTarget}
+              pct={displayProgressPct}
+            />
+          ) : (
+            <p className="text-sm text-gray-400">Set a target income to see progress.</p>
+          )}
         </div>
 
         {/* ── Monthly gap ─────────────────────────────────────────────────────── */}
